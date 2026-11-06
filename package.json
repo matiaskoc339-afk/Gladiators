@@ -1,5 +1,16 @@
 {
-  "name": "casa-de-ceniza", "version": "1.0.0", "private": true, "type": "module",
+  "name": "casa-de-ceniza",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "description": "Simulador local de gestión de gladiadores e inteligencia táctica",
-  "scripts": { "start": "python3 -m http.server 8000 --bind 0.0.0.0", "test": "node --test --test-isolation=none tests/*.test.js" }
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "build": "node scripts/build.mjs",
+    "check:bundle": "node scripts/build.mjs --check"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
 }

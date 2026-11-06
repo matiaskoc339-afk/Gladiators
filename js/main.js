@@ -70,4 +70,4 @@ function frame(now){const elapsed=Math.min(.05,(now-previousFrame)/1000);previou
  }
  requestAnimationFrame(frame);
 }
-render();requestAnimationFrame(frame);
+render();app.dataset.ready='true';requestAnimationFrame(frame);

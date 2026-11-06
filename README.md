@@ -4,18 +4,32 @@ Un juego de gestión de gladiadores en español. El jugador dirige una casa: adq
 
 HTML, CSS y módulos JavaScript nativos. Gráficos originales dibujados con Canvas 2D, sonido sintetizado con Web Audio y partidas en LocalStorage. Sin frameworks, CDN, cuentas, API ni dependencias de producción.
 
-## Ejecutar
+## Abrir y jugar (sin instalar nada)
 
-Necesitas un navegador moderno y Python 3 para servir los archivos estáticos:
+Descarga el repositorio completo (o el ZIP), **extrae toda la carpeta** y abre `index.html` con doble clic en un navegador moderno. Mantén `style.css` y la carpeta `js` junto a `index.html`. No necesitas Node, Python, conexión a Internet ni un servidor para jugar.
+
+El archivo `js/game.bundle.js` está incluido en el repositorio y se carga como un script clásico, compatible con `file://`. Las fuentes siguen organizadas en módulos para su mantenimiento. Si falta un archivo de arranque, la página muestra un aviso en lugar de quedar en blanco.
+
+Como alternativa para desarrollar o servir el juego por HTTP:
 
 ```bash
-# Desde la carpeta del proyecto
+# Desde la carpeta del proyecto, con Python 3 instalado
 python3 -m http.server 8000
 ```
 
-Abre `http://localhost:8000` en tu navegador. Con Node instalado también puedes usar `npm start`, que ejecuta el mismo servidor. **No hace falta ejecutar `npm install`.**
+Abre `http://localhost:8000` en tu navegador. Con Node instalado también puedes usar `npm start`, que ejecuta el mismo servidor. Este servidor es opcional: solo entrega archivos; la lógica y el guardado se ejecutan en el navegador.
 
-El servidor solo entrega archivos; toda la lógica y el guardado se ejecutan en el navegador. No abras `index.html` mediante `file://`, porque los módulos necesitan un origen HTTP. Una vez servidos los archivos, el juego no solicita ningún recurso externo.
+## Modificar el código
+
+Para regenerar el archivo listo para jugar necesitas Node y las herramientas de desarrollo fijadas en el lockfile:
+
+```bash
+npm ci
+npm run build
+npm run check:bundle
+```
+
+Después de editar archivos de `js/` o `data/`, ejecuta `npm run build` e incluye `js/game.bundle.js` actualizado en el commit. `check:bundle` comprueba que el archivo distribuido corresponde a las fuentes. Esbuild es una herramienta de desarrollo; no se descarga ni se ejecuta al jugar.
 
 ## Empezar a jugar
 
@@ -51,7 +65,7 @@ Los días son internos: no hay esperas de tiempo real. Los combates son estiliza
 
 La clave principal es `casa-ceniza-v1`; `casa-ceniza-v1-backup` conserva la versión válida anterior. Se valida la estructura antes de guardar o cargar. Un guardado dañado intenta recuperar la copia previa y muestra un aviso. Si el almacenamiento está bloqueado o lleno, el juego avisa y permite exportar.
 
-La partida pertenece al origen del navegador: cambiar de puerto, navegador o perfil cambia el espacio de LocalStorage. Usa **Opciones → Exportar JSON** para trasladarla. **Nueva partida** e **Importar** piden confirmación antes de reemplazar progreso existente.
+La partida pertenece al origen del navegador: cambiar de puerto, navegador o perfil cambia el espacio de LocalStorage. En modo archivo, algunos navegadores separan el almacenamiento por ubicación del archivo; exporta una copia antes de mover la carpeta. Si el navegador bloquea el almacenamiento, el juego sigue abriendo y permite exportar manualmente. Usa **Opciones → Exportar JSON** para trasladarla. **Nueva partida** e **Importar** piden confirmación antes de reemplazar progreso existente.
 
 Las recompensas se liquidan una sola vez y el estado de un combate se guarda entre turnos. Una pestaña que pierde visibilidad pausa el combate. Evita abrir la misma partida en varias pestañas a la vez: no hay sincronización entre pestañas.
 
@@ -63,7 +77,7 @@ Las pruebas de lógica no necesitan paquetes. Se verificaron con Node 24:
 npm test
 ```
 
-La suite contiene 27 pruebas y simula 60 combates completos. Cubre nueva partida; compras individuales y múltiples; falta de oro y capacidad; entrenamiento; mejoras; todas las habilidades y conjuros; requisitos; exclusividad de equipo; magia; IA distinta por personalidad; memoria; legalidad de acciones; días; recuperación; finalización; recompensas idempotentes; torneo completo; guardado, carga y daños en el almacenamiento.
+La suite contiene 29 pruebas y simula 60 combates completos. Cubre nueva partida; compras individuales y múltiples; falta de oro y capacidad; entrenamiento; mejoras; todas las habilidades y conjuros; requisitos; exclusividad de equipo; magia; IA distinta por personalidad; memoria; legalidad de acciones; días; recuperación; finalización; recompensas idempotentes; torneo completo; guardado, carga y daños en el almacenamiento.
 
 La prueba opcional de navegador requiere Python con Playwright y Chromium. Con el servidor ya iniciado:
 
@@ -83,10 +97,24 @@ Comprueba compras de dos personajes, entrenamiento con incremento de atributo, m
 
 La prueba adicional `CHROMIUM_PATH=/usr/bin/chromium python3 tests/browser_tournament.py` importa una plantilla con atributos altos para verificar rápidamente las dos rondas regionales, el campeón, el título y la bonificación mediante la interfaz real. Esa plantilla se genera exclusivamente dentro de la prueba; no forma parte de las partidas nuevas.
 
+### Regresión de apertura directa
+
+La prueba de apertura desde el disco usa Firefox y Selenium (solo herramientas de prueba). Con Firefox instalado, Selenium puede obtener su controlador o puedes indicar rutas mediante `FIREFOX_PATH` y `GECKODRIVER_PATH`:
+
+```bash
+python3 -m pip install selenium
+python3 tests/browser_file.py
+```
+
+Esta prueba abre el `index.html` real por `file://`, inicia partida, compra, entrena, equipa, recarga y continúa el guardado, pausa y termina un duelo. También comprueba que una copia incompleta, sin el bundle, muestra un aviso de error. No inicia un servidor para el juego.
+
 ## Organización
 
 ```text
 index.html, style.css       Interfaz y presentación
+js/boot.js                 Aviso visible si falla el arranque
+js/game.bundle.js           Versión incluida para abrir con doble clic
+scripts/build.mjs           Generación y comprobación del bundle
 js/main.js                 Navegación, eventos, reloj visual y coordinación
 js/gameState.js             Estado de partida y reglas de mutación
 js/saveSystem.js            Validación, guardado, carga y copia previa
@@ -108,4 +136,4 @@ El potencial limita el desarrollo sin establecer clases rígidas. Un ladrón pue
 
 Los torneos representan la ruta del gladiador seleccionado, con rivales sorteados y un campeón final. No simulan todas las ramas de un cuadro ajeno. La evolución del mundo es por eventos de jornada, no una simulación económica completa de las otras casas. Los gráficos y animaciones son vectoriales sencillos; la prioridad de esta versión es completar el ciclo jugable y mantener los sistemas ampliables.
 
-No hay compilación ni backend. Para publicar el juego basta servir estáticamente el contenido de esta carpeta; se necesita aprobación separada para cualquier publicación externa.
+No hay backend. La versión lista para jugar ya viene generada. Para publicar el juego basta servir estáticamente el contenido de esta carpeta; se necesita aprobación separada para cualquier publicación externa.

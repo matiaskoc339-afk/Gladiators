@@ -50,3 +50,19 @@ test('Almacenamiento bloqueado o lleno no rompe la partida',()=>{const s=fresh()
 test('Los doce conjuros ejecutan efectos distintos y consumen maná con recarga',()=>{for(const sp of SPELLS){const s=fresh(27),g=s.market[2];g.stats.magic=30;g.spells=SPELLS.map(x=>x.id);g.activeSpells=[sp.id];const b=createBattle(g,s.rivals[1],[],{type:'duel',reward:85,fame:2});b.actor=0;const a=b.fighters[0],enemy=b.fighters[1];a.pos=4;enemy.pos=5;a.hp=a.maxHP*.4;a.energy=20;enemy.activeSpells=['spell-spark'];const before={hp:a.hp,enemyHP:enemy.hp,energy:a.energy,mana:a.mana,pos:a.pos};assert.ok(legalActions(a,enemy).some(x=>x.spell===sp.id),sp.id);stepBattle(b,()=>.5,{type:'spell',spell:sp.id});assert.equal(a.mana,before.mana-sp.mana);assert.ok(a.cooldowns[sp.id]>0);switch(sp.effect){case 'damage':assert.ok(enemy.hp<before.enemyHP);break;case 'burn':case 'slow':assert.ok(enemy.hp<before.enemyHP&&enemy.buffs[sp.effect]);break;case 'drain':assert.ok(enemy.hp<before.enemyHP&&a.hp>before.hp);break;case 'heal':assert.ok(a.hp>before.hp);break;case 'energy':assert.ok(a.energy>before.energy);break;case 'shield':assert.ok(a.buffs.shield);break;case 'blink':assert.ok(a.pos!==before.pos&&a.buffs.evade);break;default:assert.ok(enemy.buffs[sp.effect],sp.id);}assert.ok(!legalActions(a,enemy).some(x=>x.spell===sp.id));}});
 test('Cada habilidad distintiva tiene un efecto real y respeta su enfriamiento',()=>{for(const ab of Object.values(ABILITIES)){const s=fresh(7),g=s.market[0];g.ability=ab.id;const b=createBattle(g,s.rivals[0]);b.actor=0;const a=b.fighters[0],enemy=b.fighters[1];a.pos=4;enemy.pos=5;a.hp=Math.floor(a.maxHP*.3);a.energy=Math.floor(a.maxEnergy*.5);a.mana=0;enemy.mana=40;const before=JSON.stringify([a.hp,a.energy,a.mana,a.buffs,enemy.hp,enemy.energy,enemy.mana,enemy.buffs]);assert.ok(legalActions(a,enemy).some(x=>x.type==='ability'),ab.id);stepBattle(b,()=>.5,{type:'ability'});assert.notEqual(JSON.stringify([a.hp,a.energy,a.mana,a.buffs,enemy.hp,enemy.energy,enemy.mana,enemy.buffs]),before);assert.ok(a.cooldowns.ability>0);assert.ok(!legalActions(a,enemy).some(x=>x.type==='ability'));assert.ok(a.abilityXP>0);}});
 test('Memoria táctica y nuevos equipos cambian las evaluaciones de IA',async()=>{const {evaluateActions}=await import('../js/combat/combatAI.js');const s=fresh(),a=combatant(s.market[0],[],4),b=combatant(s.rivals[0],[],5);a.tactical=.95;a.traits=['calculating'];b.recent=[];const normal=evaluateActions(a,b,()=>.5).find(x=>x.type==='defend').score;b.recent=['power','power','power','power'];const aware=evaluateActions(a,b,()=>.5).find(x=>x.type==='defend').score;assert.ok(aware>normal+15);a.weapon=ITEMS.longbow;b.pos=8;assert.ok(legalActions(a,b).some(x=>x.type==='normal'));a.weapon=ITEMS.sword;assert.ok(!legalActions(a,b).some(x=>x.type==='normal'));});
+
+test('El navegador puede bloquear el acceso a LocalStorage sin impedir el arranque',()=>{
+ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,get(){throw new Error('SecurityError: almacenamiento no disponible');}});
+ try{
+  const loaded=loadGame();
+  assert.equal(loaded.state,null);
+  assert.match(loaded.error,/almacenamiento/);
+  const saved=saveGame(fresh());
+  assert.equal(saved.ok,false);
+  assert.match(saved.error,/No se pudo guardar/);
+ }finally{
+  if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);
+  else delete globalThis.localStorage;
+ }
+});

@@ -8,9 +8,10 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app"></div><div id="toasts" aria-live="polite"></div>
+  <div id="app"><main class="main-menu"><section class="menu-content"><p class="eyebrow">CRÓNICAS DE LA ARENA</p><h1>CASA DE<br><span>CENIZA</span></h1><p id="boot-status" role="status">Preparando la casa…</p></section></main></div><div id="toasts" aria-live="polite"></div>
   <input type="file" id="import-file" accept="application/json,.json" hidden>
   <noscript>Activa JavaScript para abrir Casa de Ceniza.</noscript>
-  <script type="module" src="js/main.js"></script>
+  <script defer src="js/boot.js"></script>
+  <script defer src="js/game.bundle.js"></script>
 </body>
 </html>
