@@ -4,6 +4,10 @@ Un juego de gestión de gladiadores en español. El jugador dirige una casa: adq
 
 HTML, CSS y módulos JavaScript nativos. Gráficos originales dibujados con Canvas 2D, sonido sintetizado con Web Audio y partidas en LocalStorage. Sin frameworks, CDN, cuentas, API ni dependencias de producción.
 
+![Campamento de la Casa de Ceniza](docs/campamento.png)
+
+[Ver la arena](docs/arena.png) · [Ver la forja](docs/forja.png)
+
 ## Abrir y jugar (sin instalar nada)
 
 Descarga el repositorio completo (o el ZIP), **extrae toda la carpeta** y abre `index.html` con doble clic en un navegador moderno. Mantén `style.css` y la carpeta `js` junto a `index.html`. No necesitas Node, Python, conexión a Internet ni un servidor para jugar.
@@ -61,6 +65,16 @@ Los días son internos: no hay esperas de tiempo real. Los combates son estiliza
 - Guardado automático después de cada acción y turno, continuación de combates, copia previa, importación validada y exportación JSON.
 - Controles de pausa, velocidades ×1/×2/×4, sonido opcional y adaptación a pantallas pequeñas.
 
+## Presentación del juego
+
+La interfaz usa un marco de juego a pantalla completa: recursos arriba, navegación inferior y escenas dentro del área central. El botón de las esquinas de la barra inferior activa la pantalla completa cuando el navegador lo permite.
+
+- El ludus se representa como un campamento con edificios en perspectiva, forja, tienda de recuperación, torre arcana, montañas, bosque, antorchas y figuras animadas. Cada instalación se selecciona dentro de la escena.
+- Los gladiadores tienen proporciones, rasgos faciales, peinados, barbas, complexión y vestimenta diferenciadas; usan materiales sombreados y articulaciones animadas. Las túnicas arcanas y los pañuelos reflejan el pasado, sin imponer una clase. El equipo real se dibuja sobre el mismo personaje en las fichas, la base y el combate.
+- Los coliseos incluyen gradas, público, puertas, banderas, iluminación, polvo, estelas de ataque y efectos de hechizos. El HUD de salud, energía y maná forma parte de la arena. Los efectos propios de curación y escudo se presentan sobre su lanzador.
+- Las tiendas usan un expositor de piezas ilustradas y una ficha de inspección. En el arsenal se selecciona cada unidad para equiparla, aprenderla o venderla; el equipo del portador se muestra en ranuras.
+- Los fondos se conservan en una caché limitada; personajes, llamas y partículas se animan por separado. No se necesitan imágenes ni fuentes externas.
+
 ## Guardado
 
 La clave principal es `casa-ceniza-v1`; `casa-ceniza-v1-backup` conserva la versión válida anterior. Se valida la estructura antes de guardar o cargar. Un guardado dañado intenta recuperar la copia previa y muestra un aviso. Si el almacenamiento está bloqueado o lleno, el juego avisa y permite exportar.
@@ -93,7 +107,7 @@ Para usar un Chromium del sistema:
 CHROMIUM_PATH=/usr/bin/chromium python3 tests/browser_smoke.py --screenshots /tmp/ceniza-capturas
 ```
 
-Comprueba compras de dos personajes, entrenamiento con incremento de atributo, mejora, equipo, aprendizaje de magia, preferencias, navegación a 1440/1024/390 px, pausa, reanudación tras recargar, recompensa, exportación, importación y rechazo de una copia dañada. Cada ejecución usa un contexto de navegador aislado.
+Comprueba la selección de piezas en los expositores y en el almacén, compras de dos personajes, entrenamiento con incremento de atributo, mejora, equipo, aprendizaje de magia, preferencias, navegación a 1440/1024/390 px, pausa, reanudación tras recargar, recompensa, exportación, importación y rechazo de una copia dañada. Cada ejecución usa un contexto de navegador aislado.
 
 La prueba adicional `CHROMIUM_PATH=/usr/bin/chromium python3 tests/browser_tournament.py` importa una plantilla con atributos altos para verificar rápidamente las dos rondas regionales, el campeón, el título y la bonificación mediante la interfaz real. Esa plantilla se genera exclusivamente dentro de la prueba; no forma parte de las partidas nuevas.
 
@@ -123,7 +137,7 @@ js/base/                    Instalaciones, calendario, recuperación y eventos
 js/economy/                 Mercado, compras, unidades y equipo
 js/combat/                  Fórmulas, acciones legales, IA y motor por turnos
 js/competitions/            Rivales, duelos, rondas, premios y títulos
-js/ui/                     Pantallas, componentes, personajes, escenarios y sonido
+js/ui/                     Pantallas, iconos y objetos SVG, personajes, escenarios y sonido
 data/                      Catálogos, antecedentes, rasgos y parámetros
 tests/                     Pruebas de lógica y flujo de navegador
 ```
@@ -134,6 +148,6 @@ Las fórmulas están en `data/rules.js` y `js/combat/combatBalance.js`. La preci
 
 El potencial limita el desarrollo sin establecer clases rígidas. Un ladrón puede entrenar fuerza y utilizar un mandoble; la IA recalcula su utilidad con el arma actual.
 
-Los torneos representan la ruta del gladiador seleccionado, con rivales sorteados y un campeón final. No simulan todas las ramas de un cuadro ajeno. La evolución del mundo es por eventos de jornada, no una simulación económica completa de las otras casas. Los gráficos y animaciones son vectoriales sencillos; la prioridad de esta versión es completar el ciclo jugable y mantener los sistemas ampliables.
+Los torneos representan la ruta del gladiador seleccionado, con rivales sorteados y un campeón final. No simulan todas las ramas de un cuadro ajeno. La evolución del mundo es por eventos de jornada, no una simulación económica completa de las otras casas. Los gráficos y animaciones son originales, vectoriales y estilizados; la prioridad de esta versión es completar el ciclo jugable y mantener los sistemas ampliables.
 
 No hay backend. La versión lista para jugar ya viene generada. Para publicar el juego basta servir estáticamente el contenido de esta carpeta; se necesita aprobación separada para cualquier publicación externa.

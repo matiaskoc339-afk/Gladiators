@@ -6,19 +6,20 @@ import {startDuel,enterTournament,nextRound,settleBattle,abandonTournament} from
 import {stepBattle} from './combat/combatEngine.js';
 import {SCREENS,shell,menu} from './ui/screens.js';
 import {portraitCanvas} from './ui/characterRenderer.js';
-import {drawBase,drawArena} from './ui/scenery.js';
+import {drawBase,drawArena,drawMenu,drawFacility} from './ui/scenery.js';
 import {createBattle} from './combat/combatEngine.js';
 import {playSound} from './ui/audio.js';
 const loaded=loadGame();let state=loaded.state;
 const ui={started:false,page:'base',selected:state?.gladiators[0]?.id||null,shopCategory:'weapon',paused:false,watchResult:false,menuOptions:false,loadError:loaded.error,saveError:null};
 const app=document.querySelector('#app');let lastTick=performance.now(),lastVisual=lastTick,previousPositions=null,animationTime=0,previousFrame=lastTick;
-const demo=createGame(),menuBattle=createBattle(demo.market[0],demo.rivals[8],[],{arena:'regional'});menuBattle.fighters[0].pos=1;menuBattle.fighters[1].pos=9;
-function toast(text,error=false){const container=document.querySelector('#toasts');while(container.children.length>=3)container.firstElementChild.remove();const el=document.createElement('div');el.className='toast'+(error?' error':'');el.setAttribute('role',error?'alert':'status');el.textContent=text;document.querySelector('#toasts').append(el);setTimeout(()=>el.remove(),error?7500:4200);}
+const demo=createGame(),menuBattle=createBattle(demo.market[0],demo.rivals[8],[],{arena:'regional'});menuBattle.fighters[0].pos=5.5;menuBattle.fighters[1].pos=8.7;
+function toast(text,error=false){const container=document.querySelector('#toasts');while(container.children.length>=2)container.firstElementChild.remove();const el=document.createElement('div');el.className='toast'+(error?' error':'');el.setAttribute('role',error?'alert':'status');el.textContent=text;document.querySelector('#toasts').append(el);setTimeout(()=>el.remove(),error?7500:4200);}
 function persist(){if(!state)return;const result=saveGame(state);const was=ui.saveError;ui.saveError=result.ok?null:result.error;if(!result.ok&&!was)toast(result.error,true);}
 function render(){if(state&&!state.gladiators.some(g=>g.id===ui.selected))ui.selected=state.gladiators[0]?.id||null;app.innerHTML=ui.started&&state?shell(state,ui,(SCREENS[ui.page]||SCREENS.base)(state,ui)):menu(state,ui);}
 function navigate(page){ui.page=page;ui.watchResult=false;render();window.scrollTo({top:0,behavior:'instant'});}
 function requireSelected(){if(!ui.selected)throw new Error('Primero adquiere y selecciona un gladiador.');return ui.selected;}
 const actions={
+ fullscreen:()=>{if(!document.fullscreenEnabled){toast('Este navegador no permite activar la pantalla completa.',true);return;}const task=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();Promise.resolve(task).catch(()=>toast('Este navegador no permite activar la pantalla completa.',true));},
  navigate:el=>navigate(el.dataset.page),
  'menu-options':()=>{ui.menuOptions=!ui.menuOptions;render();},
  continue:()=>{if(!state)throw new Error('No hay una partida válida.');ui.started=true;lastTick=performance.now();render();},
@@ -32,7 +33,9 @@ const actions={
  assign:el=>{assignTraining(state,requireSelected(),el.dataset.stat);persist();render();toast(el.dataset.stat?'Entrenamiento asignado. Avanza el día para obtener experiencia.':'Gladiador asignado al descanso.');},
  upgrade:el=>{upgrade(state,el.dataset.stat);persist();render();toast('La ampliación está terminada. Sus beneficios ya están activos.');},
  recover:el=>{recover(state,el.dataset.id);persist();render();toast('Salud, estado y energía restaurados. Listo para volver a la arena.');},
- 'shop-tab':el=>{ui.shopCategory=el.dataset.category;render();},
+ 'shop-select':el=>{ui.shopItem=el.dataset.id;render();},
+ 'inventory-select':el=>{ui.inventoryUnit=el.dataset.id;render();},
+ 'shop-tab':el=>{ui.shopCategory=el.dataset.category;ui.shopItem=null;render();},
  'buy-item':el=>{buyItem(state,el.dataset.id);persist();render();toast('Objeto comprado. Asígnalo desde el Inventario.');playSound('buy',state.options.sound);},
  equip:el=>{equip(state,requireSelected(),el.dataset.id);persist();render();toast('Equipamiento actualizado.');},
  unequip:el=>{unequip(state,requireSelected(),el.dataset.slot);persist();render();},
@@ -62,10 +65,11 @@ const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matche
 function frame(now){const elapsed=Math.min(.05,(now-previousFrame)/1000);previousFrame=now;if(!ui.paused)animationTime+=elapsed;
  if(ui.started&&state?.battle&&!state.battle.result&&!ui.paused&&!document.hidden){const interval=1050/state.options.speed;if(now-lastTick>=interval){try{previousPositions=state.battle.fighters.map(f=>f.pos);const event=stepBattle(state.battle);lastVisual=now;lastTick=now;if(state.battle.result){settleBattle(state);ui.watchResult=true;playSound(state.battle.result.winner===0?'win':'hit',state.options.sound);}else if(event)playSound(event.action==='spell'?'magic':event.damage?'hit':'move',state.options.sound);persist();if(ui.page==='arena')render();}catch(error){ui.paused=true;toast('El combate se ha pausado: '+error.message,true);render();}}}
  const t=reducedMotion?0:animationTime;
- if(!ui.started){const canvas=document.querySelector('#menu-canvas');if(canvas)drawArena(canvas,menuBattle,t);}
+ if(!ui.started){const canvas=document.querySelector('#menu-canvas');if(canvas)drawMenu(canvas,menuBattle,t);}
  else{
   const base=document.querySelector('#base-canvas');if(base)drawBase(base,state,t);
   const canvas=document.querySelector('#combat-canvas');if(canvas&&state.battle)drawArena(canvas,state.battle,t,ui.paused?Math.min(1,(lastTick-lastVisual)/(1050/state.options.speed)):Math.min(1,(now-lastVisual)/(1050/state.options.speed)),previousPositions);
+  for(const canvas of document.querySelectorAll('[data-building]'))drawFacility(canvas,state,canvas.dataset.building,t);
   for(const canvas of document.querySelectorAll('[data-character]')){const id=canvas.dataset.character;const g=[...state.gladiators,...state.market,...state.rivals].find(g=>g.id===id);if(g)portraitCanvas(canvas,g,state.inventory,t,g.training?'train':g.recovery?'rest':'idle');}
  }
  requestAnimationFrame(frame);

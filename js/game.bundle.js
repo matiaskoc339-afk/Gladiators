@@ -2,7 +2,6 @@
 (() => {
   // data/rules.js
   var STATS = { strength: "Fuerza", agility: "Agilidad", attack: "Ataque", defense: "Defensa", vitality: "Vitalidad", endurance: "Resistencia", magic: "Magia", charisma: "Carisma" };
-  var ICONS = { strength: "⚒", agility: "➶", attack: "◎", defense: "⛨", vitality: "✚", endurance: "◈", magic: "✦", charisma: "♜" };
   var BUILDINGS = { strength: "Gimnasio del hierro", agility: "Circuito del viento", attack: "Patio de precisión", defense: "Bastión de guardia", endurance: "Pista de resistencia", vitality: "Jardín de recuperación", magic: "Cámara de las runas", charisma: "Sala de oratoria" };
   var RULES = Object.freeze({ initialGold: 1500, capacity: [0, 3, 5, 8, 12, 16], trainingXP: [0, 14, 21, 30, 42, 56], trainingSlots: [0, 1, 2, 2, 3, 4], upgradeCost: [0, 150, 340, 650, 1100], housingCost: [0, 350, 700, 1250, 2e3], maxStat: 60, maxTurns: 180, spellSlots: 4, saveVersion: 1 });
   var statThreshold = (value) => 28 + value * 5;
@@ -55,8 +54,8 @@
   var serial = 0;
   var uid = (prefix = "id") => `${prefix}-${Date.now().toString(36)}-${(++serial).toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   var clamp = (n, a, b) => Math.min(b, Math.max(a, Number.isFinite(n) ? n : a));
-  var int = (a, b, rng = Math.random) => Math.floor(rng() * (b - a + 1)) + a;
-  var pick = (list, rng = Math.random) => list[int(0, list.length - 1, rng)];
+  var int = (a, b, rng2 = Math.random) => Math.floor(rng2() * (b - a + 1)) + a;
+  var pick = (list, rng2 = Math.random) => list[int(0, list.length - 1, rng2)];
   var copy = (x) => JSON.parse(JSON.stringify(x));
   var esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   var money = (n) => Math.floor(n).toLocaleString("es-ES");
@@ -65,21 +64,21 @@
   var names = ["Kael", "Mara", "Iria", "Daren", "Nara", "Torren", "Selka", "Ruan", "Elian", "Bren", "Liora", "Varek", "Sira", "Oren", "Ada", "Valen", "Eira", "Malric", "Nerea", "Roderic"];
   var surnames = ["Varron", "Valcor", "Cenizal", "Thane", "del Junco", "Voss", "Gris", "de la Bruma", "Roca", "Viento Sur", "de Sal", "del Alba", "Manoslargas", "de los Pinos"];
   var regions = ["Costa del Ámbar", "Marcas del Norte", "Islas de Sal", "Valle de Oris", "Dunas de Aram", "Bosque de Liria"];
-  function generateGladiator({ tier = 0, background = null, rng = Math.random } = {}) {
-    const bg = background ? BACKGROUNDS.find((b) => b.id === background) : pick(BACKGROUNDS, rng);
-    const stats = Object.fromEntries(Object.keys(STATS).map((k) => [k, clamp(int(3, 8, rng) + (bg.bias[k] || 0) + tier * 3, 1, 60)]));
-    const first = pick(bg.traits, rng);
+  function generateGladiator({ tier = 0, background = null, rng: rng2 = Math.random } = {}) {
+    const bg = background ? BACKGROUNDS.find((b) => b.id === background) : pick(BACKGROUNDS, rng2);
+    const stats = Object.fromEntries(Object.keys(STATS).map((k) => [k, clamp(int(3, 8, rng2) + (bg.bias[k] || 0) + tier * 3, 1, 60)]));
+    const first = pick(bg.traits, rng2);
     const conflicts = { impulsive: ["calculating", "patient", "disciplined"], reckless: ["prudent", "timid"], aggressive: ["defensive"], brave: ["timid"] };
     const compatible = Object.keys(TRAITS).filter((t) => t !== first && !(conflicts[first] || []).includes(t) && !(conflicts[t] || []).includes(first));
-    const traits2 = [first, pick(compatible, rng)];
-    const potential = 0.8 + rng() * 0.7;
-    const estimate = pick(["Desconocido", "Normal", "Prometedor", "Limitado", "Excepcional"], rng);
-    const condition = int(80, 100, rng), experience = int(0, 30, rng) + tier * 30;
-    const price = Math.round((Object.values(stats).reduce((a, b) => a + b, 0) * 5 + tier * 80 + (estimate === "Excepcional" ? 75 : 0)) * (0.85 + rng() * 0.3) * condition / 100 / 5) * 5;
-    return { id: uid("g"), name: `${pick(names, rng)} ${pick(surnames, rng)}`, age: int(20, 49, rng), region: pick(regions, rng), background: bg.id, crime: bg.crime, story: `${pick(bg.stories, rng)} ${pick(["Ahora busca una segunda oportunidad en la arena.", "Todavía guarda una carta que nadie ha leído.", "Sueña con volver a ver las luces de su hogar.", "No habla de la última noche en libertad."], rng)}`, traits: traits2, stats, statXP: Object.fromEntries(Object.keys(STATS).map((k) => [k, 0])), level: 1 + tier, xp: experience, tactical: clamp(0.28 + tier * 0.12 + rng() * 0.2, 0.2, 0.95), potential, potentialEstimate: estimate, natural: bg.natural, ability: bg.ability, abilityXP: 0, price, condition, recovery: 0, health: 1, training: null, equipment: Object.fromEntries(["weapon", "offhand", "head", "chest", "hands", "feet", "accessory"].map((k) => [k, null])), spells: [], activeSpells: [], tactics: { aggression: 50, defense: 50, magic: 60, conserve: 50, distance: 40, special: 65 }, record: { wins: 0, losses: 0, draws: 0 }, prestige: 0, appearance: { skin: pick(["#d6a77c", "#b57550", "#80553d", "#edc7a2", "#a66e48"], rng), hair: pick(["#332c2a", "#795035", "#c6a061", "#a34e37", "#d6d1bd"], rng), style: int(0, 3, rng), beard: rng() < 0.4, tunic: pick(["#617e72", "#8b4f3b", "#50677e", "#967843", "#756180"], rng), face: int(0, 2, rng) } };
+    const traits2 = [first, pick(compatible, rng2)];
+    const potential = 0.8 + rng2() * 0.7;
+    const estimate = pick(["Desconocido", "Normal", "Prometedor", "Limitado", "Excepcional"], rng2);
+    const condition = int(80, 100, rng2), experience = int(0, 30, rng2) + tier * 30;
+    const price = Math.round((Object.values(stats).reduce((a, b) => a + b, 0) * 5 + tier * 80 + (estimate === "Excepcional" ? 75 : 0)) * (0.85 + rng2() * 0.3) * condition / 100 / 5) * 5;
+    return { id: uid("g"), name: `${pick(names, rng2)} ${pick(surnames, rng2)}`, age: int(20, 49, rng2), region: pick(regions, rng2), background: bg.id, crime: bg.crime, story: `${pick(bg.stories, rng2)} ${pick(["Ahora busca una segunda oportunidad en la arena.", "Todavía guarda una carta que nadie ha leído.", "Sueña con volver a ver las luces de su hogar.", "No habla de la última noche en libertad."], rng2)}`, traits: traits2, stats, statXP: Object.fromEntries(Object.keys(STATS).map((k) => [k, 0])), level: 1 + tier, xp: experience, tactical: clamp(0.28 + tier * 0.12 + rng2() * 0.2, 0.2, 0.95), potential, potentialEstimate: estimate, natural: bg.natural, ability: bg.ability, abilityXP: 0, price, condition, recovery: 0, health: 1, training: null, equipment: Object.fromEntries(["weapon", "offhand", "head", "chest", "hands", "feet", "accessory"].map((k) => [k, null])), spells: [], activeSpells: [], tactics: { aggression: 50, defense: 50, magic: 60, conserve: 50, distance: 40, special: 65 }, record: { wins: 0, losses: 0, draws: 0 }, prestige: 0, appearance: { skin: pick(["#d6a77c", "#b57550", "#80553d", "#edc7a2", "#a66e48"], rng2), hair: pick(["#332c2a", "#795035", "#c6a061", "#a34e37", "#d6d1bd"], rng2), style: int(0, 3, rng2), beard: rng2() < 0.4, tunic: pick(["#617e72", "#8b4f3b", "#50677e", "#967843", "#756180"], rng2), face: int(0, 2, rng2) } };
   }
-  function generateMarket(rng = Math.random, tier = 0) {
-    return ["thief", "deserter", "swindler", null].map((background) => generateGladiator({ tier, background, rng }));
+  function generateMarket(rng2 = Math.random, tier = 0) {
+    return ["thief", "deserter", "swindler", null].map((background) => generateGladiator({ tier, background, rng: rng2 }));
   }
 
   // data/items.js
@@ -135,8 +134,8 @@
   var missingRequirements = (g, item) => Object.entries(item.requirements).filter(([k, v]) => g.stats[k] < v);
 
   // js/competitions/rivals.js
-  function createRivals(rng = Math.random) {
-    const rivals = Array.from({ length: 8 }, (_, i) => ({ ...generateGladiator({ tier: Math.floor(i / 2), rng }), organization: ["Los Cuervos", "Casa del Bronce", "La Guardia Azul", "Hijos de Sal"][i % 4], champion: false }));
+  function createRivals(rng2 = Math.random) {
+    const rivals = Array.from({ length: 8 }, (_, i) => ({ ...generateGladiator({ tier: Math.floor(i / 2), rng: rng2 }), organization: ["Los Cuervos", "Casa del Bronce", "La Guardia Azul", "Hijos de Sal"][i % 4], champion: false }));
     for (const r of rivals) {
       if (r.level > 1) {
         const types = r.stats.magic >= r.stats.strength && r.stats.magic >= r.stats.agility ? ["staff"] : r.stats.agility > r.stats.strength ? ["bow", "dagger", "sword"] : ["sword", "axe", "mace", "spear"];
@@ -152,7 +151,7 @@
     }
     const legends = [["Bruna Rompepiedras", "deserter", 1, "defensive", "veteran", "hammer", "chest-1"], ["Sahir del Espejo", "swindler", 2, "calculating", "illusion", "runestaff", "chest-1"], ["Iria Sol de Hierro", "mercenary", 3, "aggressive", "mercenary", "imperial", "chest-3"]];
     legends.forEach(([name, background, tier, trait, ability, weapon, chest]) => {
-      const g = generateGladiator({ tier, background, rng });
+      const g = generateGladiator({ tier, background, rng: rng2 });
       Object.assign(g, { name, champion: true, organization: "Los Inmortales", traits: [trait, "disciplined"], ability, condition: 100, tactical: 0.7 + tier * 0.07 });
       if (tier === 1) g.stats.strength = 18;
       if (tier === 2) {
@@ -173,8 +172,8 @@
   }
 
   // js/gameState.js
-  function createGame(rng = Math.random) {
-    return { version: RULES.saveVersion, id: uid("save"), day: 1, gold: RULES.initialGold, prestige: 0, housing: 1, buildings: Object.fromEntries(Object.keys(STATS).map((k) => [k, 1])), gladiators: [], market: generateMarket(rng), inventory: [], rivals: createRivals(rng), history: [{ day: 1, text: "La Casa de Ceniza abre sus puertas. Cuatro contratos esperan en el mercado.", kind: "world" }], battles: [], completed: [], tournament: null, battle: null, shopDiscount: 0, options: { sound: false, reasoning: true, speed: 1 } };
+  function createGame(rng2 = Math.random) {
+    return { version: RULES.saveVersion, id: uid("save"), day: 1, gold: RULES.initialGold, prestige: 0, housing: 1, buildings: Object.fromEntries(Object.keys(STATS).map((k) => [k, 1])), gladiators: [], market: generateMarket(rng2), inventory: [], rivals: createRivals(rng2), history: [{ day: 1, text: "La Casa de Ceniza abre sus puertas. Cuatro contratos esperan en el mercado.", kind: "world" }], battles: [], completed: [], tournament: null, battle: null, shopDiscount: 0, options: { sound: false, reasoning: true, speed: 1 } };
   }
   function log(state2, text, kind = "world") {
     state2.history.unshift({ day: state2.day, text, kind });
@@ -464,18 +463,18 @@
     g.recovery = 0;
     log(s, `${g.name} recibe cuidados por 35 de oro.`, "recovery");
   }
-  function trainingGain(g, stat, level, rng = Math.random) {
+  function trainingGain(g, stat, level, rng2 = Math.random) {
     const personality = g.traits.reduce((n, t) => n * (TRAITS[t].train || 1), 1);
-    return Math.max(1, Math.round(RULES.trainingXP[level] * g.potential * personality * (g.natural === stat ? 1.15 : 1) * (g.condition / 100) * (g.recovery ? 0.5 : 1) * (0.94 + rng() * 0.12)));
+    return Math.max(1, Math.round(RULES.trainingXP[level] * g.potential * personality * (g.natural === stat ? 1.15 : 1) * (g.condition / 100) * (g.recovery ? 0.5 : 1) * (0.94 + rng2() * 0.12)));
   }
-  function advanceDay(s, rng = Math.random) {
+  function advanceDay(s, rng2 = Math.random) {
     mutable(s);
     s.day++;
     const summary = [];
     for (const g of s.gladiators) {
       if (s.tournament?.gladiatorId === g.id) continue;
       if (g.training) {
-        const xp = trainingGain(g, g.training, s.buildings[g.training], rng);
+        const xp = trainingGain(g, g.training, s.buildings[g.training], rng2);
         const gains = statExperience(g, g.training, xp);
         const text = `${g.name}: +${xp} XP de ${STATS[g.training]}${gains ? ` · sube a ${g.stats[g.training]}` : ""}.`;
         summary.push(text);
@@ -492,7 +491,7 @@
     if (s.day % 3 === 0) {
       const tier = Math.min(3, Math.floor(s.prestige / 25));
       s.market = s.market.slice(1);
-      while (s.market.length < 4) s.market.push(generateGladiator({ tier, rng }));
+      while (s.market.length < 4) s.market.push(generateGladiator({ tier, rng: rng2 }));
       log(s, "Llegan nuevos contratos al Mercado de Condenados.", "market");
     }
     if (s.day % 5 === 0) {
@@ -500,8 +499,8 @@
       log(s, "Feria del gremio: todas las tiendas ofrecen un 15 % de descuento durante esta jornada.", "shop");
     }
     if (s.day % 7 === 0) {
-      const r = pick(s.rivals.filter((r2) => !r2.champion), rng);
-      const stat = pick(Object.keys(STATS), rng);
+      const r = pick(s.rivals.filter((r2) => !r2.champion), rng2);
+      const stat = pick(Object.keys(STATS), rng2);
       r.stats[stat] = Math.min(40, r.stats[stat] + 1);
       combatExperience(r, 25);
       r.prestige++;
@@ -581,7 +580,7 @@
   var actionKey = (a) => a.type + (a.spell ? `:${a.spell}` : "");
 
   // js/combat/combatAI.js
-  function evaluateActions(a, b, rng = Math.random) {
+  function evaluateActions(a, b, rng2 = Math.random) {
     const hp = a.hp / a.maxHP, en = a.energy / a.maxEnergy, dist = distance(a, b), t = a.tactics;
     const bg = BACKGROUNDS.find((x) => x.id === a.background)?.tactics || {};
     const intellect = Math.min(1, a.tactical + traitValue(a, "intellect"));
@@ -673,13 +672,13 @@
           reason = `agilidad ${a.stats.agility}; maniobra evasiva disponible`;
           break;
       }
-      const noise = (rng() - 0.5) * (2 + (1 - intellect) * 10 + traitValue(a, "noise"));
+      const noise = (rng2() - 0.5) * (2 + (1 - intellect) * 10 + traitValue(a, "noise"));
       score += noise;
       const traits2 = a.traits.map((x) => TRAITS[x].name).join(", ");
       return { ...action, score, reason: `${reason}. ${traits2}${factor ? `: modificador de estilo ${factor > 0 ? "+" : ""}${factor}` : ""}. Evaluación ${score.toFixed(1)}.` };
     }).sort((x, y) => y.score - x.score);
   }
-  var chooseAction = (a, b, rng = Math.random) => evaluateActions(a, b, rng)[0];
+  var chooseAction = (a, b, rng2 = Math.random) => evaluateActions(a, b, rng2)[0];
 
   // js/combat/combatEngine.js
   var buff = (g, key, value, turns = 3) => {
@@ -714,7 +713,7 @@
     a.animation = winner === 0 ? "celebrate" : winner === 1 ? "defeat" : "rest";
     c.animation = winner === 1 ? "celebrate" : winner === 0 ? "defeat" : "rest";
   }
-  function stepBattle(b, rng = Math.random, forced = null) {
+  function stepBattle(b, rng2 = Math.random, forced = null) {
     if (b.result) return b.lastEvent;
     const idx = b.actor, a = b.fighters[idx], enemy = b.fighters[1 - idx];
     if (a.buffs.burn) {
@@ -724,14 +723,14 @@
         return null;
       }
     }
-    const action = forced || chooseAction(a, enemy, rng);
+    const action = forced || chooseAction(a, enemy, rng2);
     if (!legalActions(a, enemy).some((x) => actionKey(x) === actionKey(action))) throw new Error("La IA intentó una acción imposible.");
     let text = "", damage = 0, animation = "idle";
     if (ATTACKS[action.type]) {
       a.energy -= attackCost(a, action.type);
       animation = "attack";
-      if (rng() < precision(a, enemy, action.type)) {
-        damage = hit(a, enemy, expectedDamage(a, enemy, action.type) * (0.9 + rng() * 0.2));
+      if (rng2() < precision(a, enemy, action.type)) {
+        damage = hit(a, enemy, expectedDamage(a, enemy, action.type) * (0.9 + rng2() * 0.2));
         text = `${a.name} realiza un ${ATTACKS[action.type].name}: ${damage} de daño${effect(enemy, "guard") ? " tras el bloqueo" : ""}.`;
         if (effect(enemy, "guard") && enemy.ability === "veteran" && distance(a, enemy) <= 2) {
           const counter = hit(enemy, a, 3 + enemy.stats.defense * 0.2);
@@ -928,7 +927,7 @@
     s.battle = createBattle(g, r, s.inventory, { type: "duel", reward: 85 + tier * 55, fame: 2 + tier, day: s.day, rivalId: r.id });
     return s.battle;
   }
-  function enterTournament(s, gid, id2, rng = Math.random) {
+  function enterTournament(s, gid, id2, rng2 = Math.random) {
     mutable(s, gid);
     if (s.tournament) throw new Error("Ya hay un torneo en curso.");
     const t = COMPETITIONS.find((x) => x.id === id2);
@@ -940,7 +939,7 @@
     const pool = s.rivals.filter((r) => !r.champion && r.level <= t.tier + 1);
     const opponents = [];
     for (let i = 0; i < t.rounds - 1; i++) {
-      const candidate = pool[Math.floor(rng() * pool.length)];
+      const candidate = pool[Math.floor(rng2() * pool.length)];
       const r = copy(candidate);
       r.id = uid("entrant");
       opponents.push(r);
@@ -1022,30 +1021,230 @@
     return payout;
   }
 
+  // js/ui/icons.js
+  var paths = {
+    base: "M3 11 12 3l9 8M5 10v11h14V10M9 21v-8h6v8M9 7h6",
+    gladiators: "M8 8a4 4 0 1 0 8 0 4 4 0 0 0-8 0M3 22v-3c0-5 18-5 18 0v3M5 12l-3 4M19 12l3 4",
+    market: "M12 3v18M8 21h8M3 7h18M5 7l-4 8h8L5 7Zm14 0-4 8h8l-4-8Z",
+    training: "m4 3 17 17M3 5l2-2 5 3-4 4-3-5Zm12 11 3-3 4 4-3 3-4-4ZM15 3l6 6M18 2l4 4M4 21l8-8",
+    shops: "M3 9 5 3h14l2 6M3 9c0 4 6 4 6 0 0 4 6 4 6 0 0 4 6 4 6 0M4 12v10h16V12M9 22v-7h6v7",
+    inventory: "M3 7h18v14H3V7Zm0 0 3-4h12l3 4M3 12h18M10 10h4v5h-4v-5Z",
+    arena: "m4 2 15 17m-1-1 3-3M2 4l3-2 5 7-2 2-6-7ZM20 2 5 19m1-1-3-3M22 4l-3-2-5 7 2 2 6-7ZM3 20l2 2M19 22l2-2",
+    tournaments: "M7 3h10v7c0 7-10 7-10 0V3Zm0 2H3v4c0 3 4 4 5 4m9-8h4v4c0 3-4 4-5 4M12 16v5M7 22h10",
+    history: "M5 3h13v19H5V3Zm-2 0h2M8 7h7M8 11h7M8 15h7M8 19h4",
+    save: "M3 3h15l3 3v15H3V3Zm4 0v7h10V3M7 21v-7h10v7M13 4v4",
+    options: "m10 2-1 4-3-1-3 5 3 2-3 3 3 5 4-1 2 3 4-1 1-4 3 1 3-5-3-2 3-3-3-5-4 1-2-3-4 1Zm-2 10a4 4 0 1 0 8 0 4 4 0 0 0-8 0",
+    fullscreen: "M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6",
+    strength: "m3 9 3-3 3 3-3 3-3-3Zm12 9 3-3 3 3-3 3-3-3ZM6 9l12 9M1 11l5-5M18 20l5-5",
+    agility: "m2 18 6-9 5 5 9-11M15 3h7v7M3 22h5",
+    attack: "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm5 0a4 4 0 1 0 8 0 4 4 0 0 0-8 0M12 1v7M16 12h7",
+    defense: "m12 2 9 4v7c0 5-9 9-9 9s-9-4-9-9V6l9-4ZM12 6v12M7 9h10",
+    vitality: "M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z",
+    endurance: "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm9-6v6l4 3M10 1h4",
+    magic: "m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7ZM3 3l2 2M19 3l2 2M3 19l2 2",
+    charisma: "M3 9h18M6 9V5l6-3 6 3v4M5 11v8M10 11v8M15 11v8M20 11v8M3 22h19",
+    gold: "M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Zm4 0 5-5 5 5-5 5-5-5Z",
+    sun: "M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0M12 1v3M12 20v3M1 12h3M20 12h3M4 4l2 2M18 18l2 2M4 20l2-2M18 6l2-2"
+  };
+  function glyph(name, size = 24) {
+    return `<svg class="glyph" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.magic}"/></svg>`;
+  }
+  function itemArt(item) {
+    const metal = item.price > 400 ? "#dae3e5" : "#a3b1b2", gold2 = item.price > 300 ? "#e3b969" : "#a38752";
+    let art = "";
+    if (item.category === "weapon") {
+      const type = item.type;
+      if (type === "bow" || type === "crossbow") art = `<path d="M20 10Q76 40 20 75" fill="none" stroke="#38261d" stroke-width="11"/><path d="M20 10Q76 40 20 75" fill="none" stroke="${gold2}" stroke-width="5"/><path d="M20 10 30 43 20 75" fill="none" stroke="#e9ddbd" stroke-width="1.5"/><path d="m10 53 52-29m-8-2 9 1-4 9" stroke="${metal}" stroke-width="3" fill="none"/>${type === "crossbow" ? '<path d="m26 68 22-45" stroke="#73472a" stroke-width="9"/>' : ""}`;
+      else if (type === "spear") art = `<g transform="rotate(28 42 44)"><path d="M42 85V18" stroke="#2d2921" stroke-width="8"/><path d="M42 85V18" stroke="#a47b48" stroke-width="4"/><path d="m42 2-12 23 12 13 12-13Z" fill="${metal}" stroke="#263137" stroke-width="3"/><path d="M42 7v24M38 38h9m-9 5h9" stroke="${gold2}" stroke-width="2"/></g>`;
+      else if (type === "staff") art = `<path d="m29 76 18-59" stroke="#3e281e" stroke-width="10"/><path d="m29 76 18-59" stroke="#99744b" stroke-width="5"/><path d="m37 15 13-10 10 16-16 12Z" fill="#75d5dd" stroke="${gold2}" stroke-width="3"/><path d="m49 9-3 17 10-6Z" fill="#d2ffff"/><path d="m39 35 13 4M36 44l12 4" stroke="${gold2}" stroke-width="3"/>`;
+      else if (type === "axe" || type === "mace") art = `<g transform="rotate(30 42 44)"><path d="M42 78V16" stroke="#34251f" stroke-width="10"/><path d="M42 78V16" stroke="#926039" stroke-width="5"/>${type === "axe" ? `<path d="M42 18 17 8Q4 32 18 45l24-14 15 6Q68 24 56 11Z" fill="${metal}" stroke="#263137" stroke-width="3"/><path d="M17 12Q10 29 20 40" fill="none" stroke="#edf5ed" stroke-width="3"/>` : `<path d="m29 9 9-6h13l8 8v23l-10 8H36l-9-8Z" fill="${metal}" stroke="#263137" stroke-width="3"/><path d="M35 10v24m12-27v31" stroke="${gold2}" stroke-width="4"/>`}<path d="M39 51h7m-7 7h7m-7 7h7" stroke="${gold2}" stroke-width="2"/></g>`;
+      else {
+        const tip = type === "dagger" ? 24 : item.twoHanded ? 2 : 8, wide = item.twoHanded ? 9 : item.id === "rapier" ? 3 : 5;
+        art = `<g transform="rotate(35 42 44)"><path d="M${44 - wide} 55V${tip + 10}l${wide}-${10} ${wide} 10v${45 - tip}Z" fill="${metal}" stroke="#263137" stroke-width="3"/><path d="m44 ${tip + 5}-1 ${48 - tip}" stroke="#f6f8e3" stroke-width="2"/><path d="M29 55h31l-3 5H31Z" fill="${gold2}" stroke="#3d2c21" stroke-width="2"/><path d="M40 61h9v16h-9Z" fill="#75432a" stroke="#34251f" stroke-width="2"/><path d="M39 79h12" stroke="${gold2}" stroke-width="5"/>${type === "spear" ? `<path d="M44 60v25" stroke="#7d5432" stroke-width="5"/>` : ""}</g>`;
+      }
+    } else if (item.category === "scroll") art = `<path d="M21 16h41v48H22Z" fill="#c9ac73" stroke="#4d3528" stroke-width="3"/><path d="M21 16c-9-8-18 4-10 11h11m40 36c11 6 10 16 0 16H25c-9 0-12-14-3-16" fill="#e6ce93" stroke="#62452b" stroke-width="3"/><path d="m42 29 4 9 9 4-9 4-4 9-4-9-9-4 9-4Z" fill="#577a8a"/><path d="M27 58h26M31 21h23" stroke="#8e764c" stroke-width="2"/><circle cx="56" cy="63" r="9" fill="#8b3d32" stroke="${gold2}" stroke-width="2"/>`;
+    else {
+      if (item.slot === "head") art = `<path d="M19 51V31C19 5 65 5 65 31v20l-15 16V42H34v25Z" fill="${metal}" stroke="#273137" stroke-width="3"/><path d="M42 8v36M20 35h44" stroke="${gold2}" stroke-width="5"/><path d="M28 44h7m15 0h8" stroke="#17232a" stroke-width="5"/><path d="M37 9Q32-5 52 4l9 10-15-4" fill="#8c4735"/>`;
+      else if (item.slot === "chest") art = `<path d="M29 12 16 17 9 35l13 4 3 30 17 10 18-10 4-30 13-4-8-18-14-5-13 9Z" fill="${metal}" stroke="#283137" stroke-width="3"/><path d="M42 23v44m-17-8 17 8 18-8M27 42l15 6 16-6" stroke="${gold2}" stroke-width="3"/><path d="m20 21 10-4 3 17-13 3Z" fill="#dbe2d7" opacity=".6"/>`;
+      else if (item.slot === "offhand") art = `<path d="m42 6 27 11-3 34c-1 12-24 28-24 28S19 63 18 51l-3-34Z" fill="#4c696e" stroke="#b79b61" stroke-width="5"/><path d="M42 15v51M24 30h36" stroke="${gold2}" stroke-width="6"/><circle cx="42" cy="34" r="8" fill="${metal}" stroke="#263137" stroke-width="2"/>`;
+      else if (item.slot === "feet") art = `<path d="M27 10h24l-2 37 16 14v12H17V62l10-13Z" fill="#73503b" stroke="#302720" stroke-width="3"/><path d="M26 15h25l-1 10H27Zm0 28h24v10H25Z" fill="${metal}" stroke="${gold2}" stroke-width="2"/><path d="M18 64h46" stroke="#b2945a" stroke-width="4"/>`;
+      else if (item.slot === "hands") art = `<path d="m18 63 5-22 2-22c1-6 8-6 8 0v16-23c0-7 9-7 9 0v23-26c0-6 8-6 8 0v26-20c0-5 8-5 8 0v27l9-9c6-4 10 2 6 7L57 65l-2 12H23Z" fill="${metal}" stroke="#2c3537" stroke-width="3"/><path d="M23 59h33v12H22Z" fill="#735340" stroke="${gold2}" stroke-width="3"/><path d="M29 41h25" stroke="${gold2}" stroke-width="3"/>`;
+      else art = `<path d="M21 9c-8 38 50 38 42 0" fill="none" stroke="${gold2}" stroke-width="3"/><path d="m42 34 15 17-15 26-15-26Z" fill="#4b9a9c" stroke="${gold2}" stroke-width="4"/><path d="m42 42 5 10-5 12-6-12Z" fill="#b2ece4"/>`;
+    }
+    return `<svg class="item-art" viewBox="0 0 84 88" aria-hidden="true">${art}</svg>`;
+  }
+
   // js/ui/characterRenderer.js
   function equipmentOf(g, inventory = []) {
     return Object.fromEntries(Object.entries(g.equipment).map(([slot, id2]) => [slot, ITEMS[inventory.find((u) => u.id === id2)?.itemId] || ITEMS[id2] || null]));
   }
-  function shape(c, fill, draw) {
-    c.beginPath();
-    draw();
-    c.fillStyle = fill;
-    c.fill();
-    c.stroke();
+  var TAU = Math.PI * 2;
+  function tint(hex, amount) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgb(${[n >> 16, n >> 8 & 255, n & 255].map((v) => Math.max(0, Math.min(255, v + amount))).join(",")})`;
   }
-  function limb(c, x, y, x2, y2, color, width) {
-    c.strokeStyle = "#30291f";
-    c.lineWidth = width + 5;
-    c.lineCap = "round";
+  function grad(c, x, y, w2, h, colors) {
+    const g = c.createLinearGradient(x, y, w2, h);
+    colors.forEach((color, i) => g.addColorStop(i / (colors.length - 1), color));
+    return g;
+  }
+  function path(c, points, fill, stroke = "#1b1919", width = 2.5) {
     c.beginPath();
-    c.moveTo(x, y);
-    c.lineTo(x2, y2);
-    c.stroke();
-    c.strokeStyle = color;
-    c.lineWidth = width;
-    c.stroke();
-    c.strokeStyle = "#30291f";
-    c.lineWidth = 2.5;
+    points(c);
+    if (fill) {
+      c.fillStyle = fill;
+      c.fill();
+    }
+    if (stroke) {
+      c.strokeStyle = stroke;
+      c.lineWidth = width;
+      c.stroke();
+    }
+  }
+  function ellipse(c, x, y, rx, ry, fill, stroke = null, width = 2) {
+    path(c, (p) => p.ellipse(x, y, rx, ry, 0, 0, TAU), fill, stroke, width);
+  }
+  function line(c, points, color, width = 2) {
+    path(c, (p) => {
+      p.moveTo(...points[0]);
+      for (const point of points.slice(1)) p.lineTo(...point);
+    }, null, color, width);
+  }
+  function capsule(c, a, b, r, fill) {
+    line(c, [a, b], "#1e1a19", r + 5);
+    line(c, [a, b], fill, r);
+    line(c, [[a[0] - r * 0.18, a[1]], [b[0] - r * 0.18, b[1]]], "#ffffff13", Math.max(2, r * 0.22));
+  }
+  function hand(c, x, y, skin, glove) {
+    ellipse(c, x, y, 8, 9, glove ? grad(c, x - 5, y - 7, x + 6, y + 7, ["#b3b9ac", "#5c6662"]) : skin, "#251e1a");
+    line(c, [[x + 2, y - 4], [x + 4, y + 3]], "#2c242470", 1.5);
+  }
+  function drawWeapon(c, weapon, x, y, angle = 0, time = 0) {
+    if (!weapon || weapon.type === "fist") return;
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    const rare = weapon.price > 450, metal = grad(c, -10, 0, 12, 0, ["#69767c", "#d5e3df", "#81979b"]), gold2 = rare ? "#e4bb6c" : "#b49b65";
+    const length = weapon.type === "dagger" ? 40 : weapon.type === "spear" ? 124 : weapon.type === "staff" ? 112 : rare ? 91 : 74;
+    if (weapon.type === "bow") {
+      path(c, (p) => {
+        p.moveTo(-3, -58);
+        p.bezierCurveTo(43, -47, 43, 35, -3, 50);
+      }, null, "#241b16", 9);
+      path(c, (p) => {
+        p.moveTo(-3, -58);
+        p.bezierCurveTo(43, -47, 43, 35, -3, 50);
+      }, null, "#a16c3e", 5);
+      line(c, [[-3, -58], [9, -5], [-3, 50]], "#ebd8a8", 1.3);
+      line(c, [[-13, 8], [50, -22]], "#9a7750", 3);
+      path(c, (p) => {
+        p.moveTo(50, -22);
+        p.lineTo(44, -22);
+        p.lineTo(48, -16);
+        p.closePath();
+      }, "#d1d4c1");
+    } else if (weapon.type === "crossbow") {
+      capsule(c, [0, 20], [0, -38], 10, "#775037");
+      line(c, [[-31, -26], [0, -39], [34, -24]], "#b19862", 6);
+      line(c, [[-31, -26], [0, -10], [34, -24]], "#d7ccab", 1.5);
+      line(c, [[0, -47], [0, -8]], "#e2e7d6", 3);
+    } else if (weapon.type === "staff") {
+      path(c, (p) => {
+        p.moveTo(-3, 24);
+        p.lineTo(-4, -length + 14);
+        p.quadraticCurveTo(-23, -length - 3, -9, -length - 15);
+        p.lineTo(6, -length - 22);
+        p.lineTo(17, -length - 8);
+        p.lineTo(6, -length + 10);
+        p.lineTo(3, 24);
+        p.closePath();
+      }, grad(c, -8, 0, 13, 0, ["#3b2d2a", "#ab8150", "#65503c"]));
+      for (let i = 0; i < 4; i++) line(c, [[-5, -10 - i * 17], [5, -14 - i * 17]], gold2, 2);
+      c.shadowColor = "#55d6ea";
+      c.shadowBlur = 14;
+      path(c, (p) => {
+        p.moveTo(-6, -length - 8);
+        p.lineTo(3, -length - 20);
+        p.lineTo(11, -length - 8);
+        p.lineTo(2, -length);
+        p.closePath();
+      }, "#7adce8", "#d0f6e7", 1.5);
+      c.shadowBlur = 0;
+    } else {
+      capsule(c, [0, 20], [0, -length + 12], weapon.type === "spear" ? 5 : 7, "#765037");
+      if (weapon.type === "axe") {
+        path(c, (p) => {
+          p.moveTo(0, -length + 5);
+          p.lineTo(-12, -length - 5);
+          p.quadraticCurveTo(-42, -length - 13, -44, -length - 2);
+          p.quadraticCurveTo(-45, -length + 22, -30, -length + 37);
+          p.lineTo(-5, -length + 24);
+          p.lineTo(14, -length + 30);
+          p.quadraticCurveTo(26, -length + 15, 13, -length + 6);
+          p.closePath();
+        }, metal);
+        path(c, (p) => {
+          p.moveTo(-42, -length - 2);
+          p.quadraticCurveTo(-45, -length + 22, -30, -length + 34);
+        }, null, "#e4efdf", 3);
+      } else if (weapon.type === "mace") {
+        path(c, (p) => {
+          p.moveTo(-13, -length - 4);
+          p.lineTo(-7, -length - 12);
+          p.lineTo(9, -length - 12);
+          p.lineTo(17, -length - 2);
+          p.lineTo(14, -length + 22);
+          p.lineTo(6, -length + 29);
+          p.lineTo(-13, -length + 23);
+          p.closePath();
+        }, metal);
+        line(c, [[-7, -length - 8], [-6, -length + 22]], gold2, 4);
+        line(c, [[7, -length - 8], [8, -length + 22]], "#e0e7d4", 3);
+      } else if (weapon.type === "spear") {
+        path(c, (p) => {
+          p.moveTo(0, -length - 26);
+          p.lineTo(-12, -length + 5);
+          p.lineTo(-1, -length + 21);
+          p.lineTo(10, -length + 3);
+          p.closePath();
+        }, metal);
+        line(c, [[0, -length - 18], [0, -length + 12]], "#e8edda", 1.5);
+        line(c, [[-5, -length + 22], [5, -length + 22]], gold2, 4);
+      } else {
+        const width = weapon.twoHanded ? 10 : weapon.type === "dagger" ? 5 : 7;
+        path(c, (p) => {
+          p.moveTo(-width, -16);
+          p.lineTo(-width, -length + 8);
+          p.lineTo(0, -length - 8);
+          p.lineTo(width, -length + 8);
+          p.lineTo(width, -16);
+          p.closePath();
+        }, metal);
+        line(c, [[0, -length], [0, -19]], "#eef5e4", 2);
+        path(c, (p) => {
+          p.moveTo(-19, -17);
+          p.lineTo(-17, -24);
+          p.lineTo(-7, -21);
+          p.lineTo(8, -21);
+          p.lineTo(18, -25);
+          p.lineTo(21, -17);
+          p.lineTo(8, -13);
+          p.lineTo(-7, -13);
+          p.closePath();
+        }, gold2);
+        for (let i = 0; i < 4; i++) line(c, [[-3, i * 5 - 6], [4, i * 5 - 8]], "#c4a572", 1.4);
+        ellipse(c, 0, 22, 7, 5, gold2, "#30241c");
+        if (rare) {
+          c.shadowColor = "#e7c577";
+          c.shadowBlur = 8;
+          line(c, [[-2, -length + 20], [-2, -length + 44]], "#f4d68b", 1.4);
+          c.shadowBlur = 0;
+        }
+      }
+    }
+    c.restore();
   }
   function drawCharacter(c, g, x, y, scale = 1, flip = false, time = 0, pose = "idle", gear = null) {
     if (!g) return;
@@ -1055,257 +1254,416 @@
     c.scale(flip ? -scale : scale, scale);
     c.lineJoin = "round";
     c.lineCap = "round";
-    c.lineWidth = 2.5;
-    c.strokeStyle = "#30291f";
-    c.fillStyle = "#30291f25";
-    c.beginPath();
-    c.ellipse(0, 0, 35, 7, 0, 0, Math.PI * 2);
-    c.fill();
-    const wave = Math.sin(time * 6), bob = pose === "walk" ? Math.abs(wave) * 4 : Math.sin(time * 2) * 1.5;
+    const shadow = c.createRadialGradient(0, 0, 2, 0, 0, 49);
+    shadow.addColorStop(0, "#130f0cb0");
+    shadow.addColorStop(1, "#130f0c00");
+    ellipse(c, 0, 0, 54, 12, shadow);
+    c.scale(1 + Math.min(0.13, Math.max(-0.035, (g.stats.strength - 8) * 6e-3)), 1);
+    const wave = Math.sin(time * 7), breath = Math.sin(time * 2.3 + (a.face || 0)), walking = pose === "walk", training = pose === "train";
+    const pulse = Math.sin(time * 14), attack = pose === "attack";
     if (pose === "defeat") {
-      c.translate(0, -12);
-      c.rotate(-1.25);
-      c.globalAlpha = 0.8;
+      c.translate(-12, -13);
+      c.rotate(-1.27);
     }
-    if (pose === "hit") c.rotate(Math.sin(time * 23) * 0.025);
-    c.translate(0, -bob);
-    const leg = pose === "walk" ? wave * 13 : pose === "train" ? Math.sin(time * 5) * 7 : 0;
-    limb(c, -12, -53, -17 + leg, -16, a.skin, 16);
-    limb(c, 12, -53, 19 - leg, -16, a.skin, 16);
-    shape(c, eq.feet ? "#76684e" : "#4a3b2d", () => {
-      c.roundRect(-29 + leg, -18, 25, 17, 5);
-    });
-    shape(c, eq.feet ? "#76684e" : "#4a3b2d", () => c.roundRect(7 - leg, -18, 27, 17, 5));
-    shape(c, eq.chest ? "#8d9b98" : a.tunic, () => {
-      c.moveTo(-25, -108);
-      c.quadraticCurveTo(0, -123, 25, -107);
-      c.lineTo(21, -54);
-      c.quadraticCurveTo(0, -43, -23, -54);
-      c.closePath();
-    });
-    c.fillStyle = eq.chest ? "#c1c9ba" : "#ffffff20";
-    c.fillRect(-18, -102, 11, 39);
-    c.strokeStyle = "#4b4536";
-    if (eq.chest) {
-      for (let i = 0; i < 3; i++) {
-        c.beginPath();
-        c.moveTo(-20, -75 + i * 8);
-        c.lineTo(20, -75 + i * 8);
-        c.stroke();
-      }
+    if (pose === "hit") c.translate(-5 - Math.abs(pulse) * 4, 0);
+    const stride = walking ? wave * 14 : training ? wave * 3 : 0;
+    c.translate(attack ? 7 : 0, walking ? -Math.abs(wave) * 4 : breath * 0.8);
+    const skin = grad(c, -35, -170, 35, -80, [tint(a.skin, 30), a.skin, tint(a.skin, -34)]);
+    const cloth = grad(c, -32, -130, 32, -56, [tint(a.tunic, 18), a.tunic, tint(a.tunic, -38)]);
+    const steel = grad(c, -35, -120, 35, -60, ["#b2c0b9", "#62787b", "#39484e"]);
+    const leather = grad(c, -30, -120, 35, -60, ["#99714a", "#674b36", "#382c28"]);
+    capsule(c, [-18, -66], [-22 - stride, -34], 19, skin);
+    capsule(c, [-22 - stride, -34], [-25 - stride, -9], 16, skin);
+    capsule(c, [17, -65], [24 + stride, -32], 20, skin);
+    capsule(c, [24 + stride, -32], [26 + stride, -8], 16, skin);
+    for (const [lx, knee] of [[-25 - stride, -22 - stride], [26 + stride, 24 + stride]]) {
+      path(c, (p) => {
+        p.moveTo(lx - 9, -18);
+        p.lineTo(lx + 8, -18);
+        p.lineTo(lx + 13, -7);
+        p.lineTo(lx + 21, -3);
+        p.quadraticCurveTo(lx + 21, 4, lx + 12, 5);
+        p.lineTo(lx - 12, 4);
+        p.lineTo(lx - 12, -9);
+        p.closePath();
+      }, "#3c302a");
+      line(c, [[lx - 10, -1], [lx + 16, 0]], "#ad8b55", 2);
+      if (eq.feet) {
+        path(c, (p) => {
+          p.moveTo(knee - 9, -41);
+          p.lineTo(knee + 10, -41);
+          p.lineTo(lx + 8, -16);
+          p.lineTo(lx - 9, -13);
+          p.closePath();
+        }, steel);
+        line(c, [[knee - 9, -36], [knee + 10, -36]], "#c9ab70", 2);
+      } else for (let i = 0; i < 2; i++) line(c, [[lx - 9, -21 - i * 9], [lx + 8, -24 - i * 9]], "#72523a", 3);
     }
-    c.fillStyle = "#52392a";
-    c.fillRect(-25, -58, 49, 9);
-    c.fillStyle = "#d1aa57";
-    c.fillRect(-5, -58, 11, 9);
-    c.strokeStyle = "#30291f";
-    let handX = 40, handY = -75;
-    if (pose === "attack") {
-      handX = 70 + Math.sin(time * 16) * 8;
-      handY = -95;
+    const arcane = ["swindler", "apprentice", "warlock", "healer"].includes(g.background);
+    if (arcane && !eq.chest) {
+      path(c, (p) => {
+        p.moveTo(-25, -88);
+        p.lineTo(23, -87);
+        p.quadraticCurveTo(23, -47, 38, -21);
+        p.lineTo(22, -13);
+        p.lineTo(4, -19);
+        p.lineTo(-12, -13);
+        p.lineTo(-35, -20);
+        p.quadraticCurveTo(-23, -52, -25, -88);
+        p.closePath();
+      }, cloth, "#211d1b", 2.5);
+      for (let j = 0; j < 4; j++) path(c, (p) => {
+        p.moveTo(-18 + j * 11, -70);
+        p.quadraticCurveTo(-15 + j * 12, -40, -21 + j * 16, -22);
+      }, null, j % 2 ? "#c7b77e25" : "#111c2150", 2);
+      line(c, [[-34, -21], [-12, -15], [4, -21], [22, -15], [36, -23]], "#c6ab71", 2.5);
     }
-    if (pose === "cast") {
-      handX = 50;
-      handY = -112;
+    let backHand = [-39, -77], frontHand = [47, -78], elbow = [42, -104];
+    if (walking) {
+      backHand = [-41 - wave * 10, -78];
+      frontHand = [45 + wave * 10, -78];
+    }
+    if (attack) {
+      frontHand = [76 + pulse * 9, -112];
+      elbow = [51, -115];
+      backHand = [-31, -92];
     }
     if (pose === "defend") {
-      handX = 20;
-      handY = -106;
-    }
-    if (pose === "celebrate") {
-      handX = 32;
-      handY = -156 + wave * 3;
-    }
-    if (pose === "rest") {
-      handX = 27;
-      handY = -64;
-    }
-    if (pose === "train") {
-      handX = 30;
-      handY = -95 + wave * 20;
-    }
-    limb(c, 23, -101, handX, handY, a.skin, 13);
-    limb(c, -22, -99, -35, -66 + (pose === "walk" ? wave * 7 : 0), a.skin, 13);
-    if (eq.offhand) {
-      shape(c, "#7d6845", () => {
-        c.moveTo(-49, -92);
-        c.lineTo(-20, -92);
-        c.lineTo(-22, -61);
-        c.quadraticCurveTo(-35, -43, -48, -63);
-        c.closePath();
-      });
-      c.fillStyle = "#c6ad73";
-      c.beginPath();
-      c.arc(-35, -76, 5, 0, Math.PI * 2);
-      c.fill();
-    }
-    c.save();
-    c.translate(handX, handY);
-    if (pose === "attack") c.rotate(0.85);
-    else c.rotate(0.13);
-    if (weapon.type === "bow" || weapon.type === "crossbow") {
-      c.strokeStyle = "#4c3320";
-      c.lineWidth = 5;
-      c.beginPath();
-      c.moveTo(4, -46);
-      c.quadraticCurveTo(42, 0, 4, 44);
-      c.stroke();
-      c.lineWidth = 1;
-      c.strokeStyle = "#dfd3ad";
-      c.beginPath();
-      c.moveTo(4, -46);
-      c.lineTo(4, 44);
-      c.stroke();
-      c.strokeStyle = "#30291f";
-    } else if (weapon.type !== "fist") {
-      const length = weapon.type === "spear" ? 90 : weapon.type === "dagger" ? 27 : weapon.type === "staff" ? 72 : 52;
-      limb(c, 0, 9, 0, -length, weapon.type === "staff" || weapon.type === "spear" ? "#825c34" : "#b8cac6", weapon.type === "staff" ? 7 : weapon.type === "mace" ? 8 : 6);
-      if (["sword", "dagger"].includes(weapon.type)) {
-        shape(c, "#d2dfd8", () => {
-          c.moveTo(-4, -12);
-          c.lineTo(-4, -length);
-          c.lineTo(0, -length - 10);
-          c.lineTo(5, -length);
-          c.lineTo(5, -12);
-          c.closePath();
-        });
-        c.fillStyle = "#d1aa57";
-        c.fillRect(-11, -14, 23, 5);
-      }
-      if (weapon.type === "axe") {
-        shape(c, "#bac8bd", () => {
-          c.moveTo(-1, -length);
-          c.lineTo(19, -length - 4);
-          c.quadraticCurveTo(30, -length + 13, 15, -length + 23);
-          c.lineTo(-1, -length + 15);
-          c.closePath();
-        });
-      }
-      if (weapon.type === "mace") shape(c, "#8c9897", () => c.roundRect(-11, -length - 7, 24, 25, 5));
-      if (weapon.type === "staff") {
-        c.fillStyle = "#b0b6db";
-        c.shadowColor = "#91b5fa";
-        c.shadowBlur = 12;
-        c.beginPath();
-        c.arc(0, -length - 5, 8, 0, Math.PI * 2);
-        c.fill();
-        c.shadowBlur = 0;
-      }
-      if (weapon.type === "spear") shape(c, "#b7cfcb", () => {
-        c.moveTo(-7, -length + 8);
-        c.lineTo(0, -length - 17);
-        c.lineTo(7, -length + 8);
-        c.closePath();
-      });
-    }
-    c.restore();
-    c.fillStyle = eq.hands ? "#756f58" : a.skin;
-    c.beginPath();
-    c.arc(handX, handY, 8, 0, Math.PI * 2);
-    c.fill();
-    c.stroke();
-    c.fillStyle = a.skin;
-    c.beginPath();
-    c.ellipse(-29, -134, 7, 10, -0.15, 0, Math.PI * 2);
-    c.fill();
-    c.stroke();
-    shape(c, a.skin, () => {
-      c.moveTo(-27, -155);
-      c.bezierCurveTo(-35, -182, 31, -185, 31, -151);
-      c.lineTo(32, -125);
-      c.quadraticCurveTo(26, -106, 4, -108);
-      c.quadraticCurveTo(-28, -108, -28, -133);
-      c.closePath();
-    });
-    c.fillStyle = "#ffffff18";
-    c.beginPath();
-    c.ellipse(-13, -146, 10, 18, 0, 0, Math.PI * 2);
-    c.fill();
-    shape(c, a.hair, () => {
-      c.moveTo(-28, -140);
-      c.lineTo(-31, -157);
-      c.quadraticCurveTo(-33, -179, -7, -179);
-      if (a.style === 1) {
-        c.lineTo(-2, -194);
-        c.lineTo(6, -181);
-        c.lineTo(16, -192);
-        c.lineTo(21, -177);
-      } else if (a.style === 2) {
-        c.quadraticCurveTo(35, -189, 33, -155);
-      } else {
-        c.quadraticCurveTo(31, -183, 32, -154);
-      }
-      c.lineTo(23, -151);
-      c.lineTo(19, -166);
-      c.quadraticCurveTo(-5, -153, -21, -162);
-      c.lineTo(-23, -139);
-      c.closePath();
-    });
-    if (a.style === 3) {
-      c.fillStyle = a.hair;
-      c.beginPath();
-      c.ellipse(-30, -134, 10, 23, 0.2, 0, Math.PI * 2);
-      c.fill();
-    }
-    if (eq.head) {
-      shape(c, "#99a5a0", () => {
-        c.moveTo(-32, -155);
-        c.quadraticCurveTo(-30, -188, 0, -189);
-        c.quadraticCurveTo(29, -184, 34, -154);
-        c.closePath();
-      });
-      c.fillStyle = "#cfb466";
-      c.fillRect(-32, -158, 67, 7);
-    }
-    c.fillStyle = "#fff5d7";
-    c.beginPath();
-    c.ellipse(-3, -141, 7, 8, 0, 0, Math.PI * 2);
-    c.ellipse(20, -141, 6, 8, 0, 0, Math.PI * 2);
-    c.fill();
-    c.fillStyle = "#2b2926";
-    c.beginPath();
-    c.arc(0, -140, 3.3, 0, Math.PI * 2);
-    c.arc(23, -140, 3.1, 0, Math.PI * 2);
-    c.fill();
-    c.lineWidth = 3;
-    c.beginPath();
-    c.moveTo(-10, -153);
-    c.lineTo(4, -151 + (a.face === 1 ? 3 : 0));
-    c.moveTo(15, -151);
-    c.lineTo(27, -153);
-    c.stroke();
-    shape(c, a.skin, () => {
-      c.moveTo(9, -141);
-      c.lineTo(15, -128);
-      c.lineTo(8, -127);
-    });
-    if (a.beard) {
-      shape(c, a.hair, () => {
-        c.moveTo(-22, -126);
-        c.quadraticCurveTo(3, -110, 29, -126);
-        c.lineTo(24, -109);
-        c.quadraticCurveTo(4, -95, -18, -112);
-        c.closePath();
-      });
-    }
-    c.strokeStyle = a.beard ? "#e9b68b" : "#633c2d";
-    c.lineWidth = 2;
-    c.beginPath();
-    c.moveTo(0, -119);
-    c.quadraticCurveTo(11, -115 + (pose === "celebrate" ? 5 : 0), 20, -120);
-    c.stroke();
-    if (eq.accessory) {
-      c.fillStyle = "#e5be57";
-      c.beginPath();
-      c.arc(0, -97, 4, 0, Math.PI * 2);
-      c.fill();
+      frontHand = [28, -120];
+      elbow = [40, -107];
+      backHand = [-19, -113];
     }
     if (pose === "cast") {
-      for (let i = 0; i < 4; i++) {
-        c.fillStyle = `rgba(135,184,236,${0.8 - i * 0.15})`;
-        c.beginPath();
-        c.arc(handX + Math.sin(time * 5 + i) * 14, handY - 23 - i * 7, 4 - i * 0.5, 0, Math.PI * 2);
-        c.fill();
+      frontHand = [59, -126 + breath * 2];
+      elbow = [42, -111];
+      backHand = [-34, -99];
+    }
+    if (pose === "celebrate") {
+      frontHand = [39, -184 + wave * 3];
+      elbow = [45, -153];
+      backHand = [-45, -150];
+    }
+    if (pose === "rest") {
+      frontHand = [32, -71];
+      elbow = [39, -93];
+      backHand = [-33, -71];
+    }
+    if (training) {
+      frontHand = [45, -103 + wave * 18];
+      elbow = [39, -108];
+      backHand = [-34, -86 - wave * 15];
+    }
+    path(c, (p) => {
+      p.moveTo(-29, -135);
+      p.quadraticCurveTo(-48, -109, -39, -56);
+      p.lineTo(-29, -68);
+      p.lineTo(-21, -56);
+      p.lineTo(-8, -126);
+      p.closePath();
+    }, tint(a.tunic, -40));
+    capsule(c, [-29, -126], [-40, -104], 18, skin);
+    capsule(c, [-40, -104], backHand, 15, skin);
+    hand(c, ...backHand, skin, eq.hands);
+    path(c, (p) => {
+      p.moveTo(-30, -137);
+      p.quadraticCurveTo(-13, -146, 2, -141);
+      p.lineTo(27, -134);
+      p.quadraticCurveTo(34, -115, 27, -92);
+      p.lineTo(24, -66);
+      p.quadraticCurveTo(0, -55, -26, -67);
+      p.lineTo(-28, -97);
+      p.quadraticCurveTo(-37, -124, -30, -137);
+      p.closePath();
+    }, eq.chest ? eq.chest.weight >= 2 ? steel : leather : cloth);
+    path(c, (p) => {
+      p.moveTo(-22, -130);
+      p.quadraticCurveTo(-13, -139, 0, -136);
+      p.lineTo(-4, -72);
+      p.lineTo(-23, -73);
+      p.closePath();
+    }, "#ffffff0e", null);
+    if (eq.chest?.weight >= 2) {
+      path(c, (p) => {
+        p.moveTo(-24, -121);
+        p.quadraticCurveTo(-5, -111, 1, -109);
+        p.quadraticCurveTo(16, -111, 24, -119);
+        p.lineTo(21, -99);
+        p.lineTo(0, -91);
+        p.lineTo(-25, -100);
+        p.closePath();
+      }, steel, "#263237", 2);
+      for (let j = 0; j < 3; j++) path(c, (p) => {
+        p.moveTo(-24, -93 + j * 8);
+        p.lineTo(0, -86 + j * 8);
+        p.lineTo(24, -94 + j * 8);
+      }, null, "#b3b8a45c", 2);
+      line(c, [[0, -126], [0, -96]], "#d5ba78", 2);
+      ellipse(c, 0, -118, 5, 5, "#c4a668", "#4c4130", 1);
+    } else {
+      path(c, (p) => {
+        p.moveTo(-26, -134);
+        p.lineTo(-18, -137);
+        p.lineTo(24, -83);
+        p.lineTo(23, -72);
+        p.closePath();
+      }, "#69442d", "#2b211d", 1.5);
+      for (let i = 0; i < 4; i++) ellipse(c, -20 + i * 10, -129 + i * 13, 1.7, 1.7, "#be9c61");
+      line(c, [[-4, -125], [-4, -79]], "#1f211e50", 1.5);
+    }
+    for (let i = 0; i < 5; i++) {
+      const xx = -28 + i * 12;
+      path(c, (p) => {
+        p.moveTo(xx, -66);
+        p.lineTo(xx + 11, -66);
+        p.lineTo(xx + 10, -45);
+        p.lineTo(xx + 5, -41);
+        p.lineTo(xx, -46);
+        p.closePath();
+      }, i % 2 ? "#5a3a28" : "#73503a", "#251c18", 1.5);
+      ellipse(c, xx + 5, -48, 1.5, 1.5, "#b99a5e");
+    }
+    path(c, (p) => {
+      p.moveTo(-28, -72);
+      p.lineTo(27, -72);
+      p.lineTo(28, -61);
+      p.lineTo(-28, -60);
+      p.closePath();
+    }, "#3c3024");
+    path(c, (p) => p.rect(-6, -74, 14, 15), "#c5a366", "#3c3024", 2);
+    path(c, (p) => p.rect(-2, -70, 6, 7), "#433329", null);
+    if (["thief", "smuggler", "spy", "poacher", "saboteur"].includes(g.background) && !eq.chest) {
+      path(c, (p) => {
+        p.moveTo(-22, -131);
+        p.lineTo(22, -128);
+        p.lineTo(12, -108);
+        p.lineTo(-15, -119);
+        p.lineTo(-28, -104);
+        p.lineTo(-31, -120);
+        p.closePath();
+      }, tint(a.tunic, 30), "#2c2d23", 2);
+      line(c, [[-17, -124], [7, -114]], "#d6ca9633", 1.5);
+    }
+    capsule(c, [-1, -146], [-1, -134], 18, skin);
+    line(c, [[-21, -135], [-2, -125], [22, -134]], "#ae935d", 4);
+    capsule(c, [28, -127], elbow, 21, skin);
+    capsule(c, elbow, frontHand, 16, skin);
+    const shoulderFill = eq.chest?.weight >= 2 ? steel : leather;
+    path(c, (p) => {
+      p.moveTo(17, -138);
+      p.quadraticCurveTo(35, -143, 43, -126);
+      p.lineTo(39, -114);
+      p.lineTo(24, -117);
+      p.closePath();
+    }, shoulderFill);
+    line(c, [[24, -134], [37, -129]], "#d5bc8580", 2);
+    path(c, (p) => {
+      p.moveTo(frontHand[0] - 9, frontHand[1] - 14);
+      p.lineTo(frontHand[0] + 7, frontHand[1] - 15);
+      p.lineTo(frontHand[0] + 10, frontHand[1] - 2);
+      p.lineTo(frontHand[0] - 7, frontHand[1] + 2);
+      p.closePath();
+    }, eq.hands ? steel : "#60432f");
+    line(c, [[frontHand[0] - 7, frontHand[1] - 9], [frontHand[0] + 7, frontHand[1] - 11]], "#ba9d62", 2);
+    if (eq.offhand) {
+      c.save();
+      c.translate(backHand[0] + 1, backHand[1] + 2);
+      c.rotate(pose === "defend" ? -0.25 : 0.1);
+      path(c, (p) => {
+        p.moveTo(0, -34);
+        p.lineTo(25, -24);
+        p.lineTo(22, 12);
+        p.quadraticCurveTo(18, 29, 0, 38);
+        p.quadraticCurveTo(-19, 29, -23, 12);
+        p.lineTo(-25, -24);
+        p.closePath();
+      }, grad(c, -25, -25, 25, 25, ["#72918d", "#354f52", "#202f35"]), "#b99b60", 4);
+      line(c, [[0, -28], [0, 29]], "#aa8d52", 4);
+      line(c, [[-20, -9], [20, -9]], "#aa8d52", 4);
+      ellipse(c, 0, -8, 8, 9, steel, "#d0b374", 2);
+      c.restore();
+    }
+    const angle = attack ? 1.12 + Math.sin(time * 14) * 0.22 : pose === "celebrate" ? -0.3 : pose === "defend" ? 0.2 : -0.19;
+    drawWeapon(c, weapon, ...frontHand, angle, time);
+    hand(c, ...frontHand, skin, eq.hands);
+    c.save();
+    c.translate(pose === "hit" ? -2 : 0, pose === "rest" ? 3 : 0);
+    c.rotate(pose === "rest" ? 0.09 : attack ? 0.035 : 0);
+    ellipse(c, -23, -163, 6, 10, skin, "#33251f");
+    ellipse(c, -24, -162, 2, 5, tint(a.skin, -28));
+    path(c, (p) => {
+      p.moveTo(-22, -187);
+      p.quadraticCurveTo(-9, -202, 14, -194);
+      p.quadraticCurveTo(29, -187, 26, -164);
+      p.lineTo(25, -149);
+      p.lineTo(13, -138);
+      p.quadraticCurveTo(-3, -133, -17, -147);
+      p.lineTo(-23, -167);
+      p.closePath();
+    }, grad(c, -25, -189, 28, -144, [tint(a.skin, 32), a.skin, tint(a.skin, -29)]));
+    path(c, (p) => {
+      p.moveTo(9, -188);
+      p.lineTo(24, -179);
+      p.lineTo(24, -153);
+      p.lineTo(12, -141);
+      p.lineTo(5, -145);
+      p.lineTo(13, -167);
+      p.closePath();
+    }, tint(a.skin, -17), null);
+    const hair = a.hair;
+    if (a.style === 1) {
+      path(c, (p) => {
+        p.moveTo(-17, -187);
+        p.lineTo(-13, -204);
+        p.lineTo(-5, -201);
+        p.lineTo(0, -214);
+        p.lineTo(10, -205);
+        p.lineTo(19, -207);
+        p.lineTo(23, -192);
+        p.lineTo(12, -190);
+        p.closePath();
+      }, grad(c, -15, -210, 22, -185, [tint(hair, 30), hair, tint(hair, -25)]));
+    } else if (a.style === 2) {
+      path(c, (p) => {
+        p.moveTo(-23, -172);
+        p.quadraticCurveTo(-34, -199, -4, -203);
+        p.quadraticCurveTo(24, -209, 29, -185);
+        p.lineTo(20, -174);
+        p.lineTo(16, -192);
+        p.quadraticCurveTo(-3, -182, -16, -188);
+        p.lineTo(-16, -166);
+        p.closePath();
+      }, grad(c, -23, -200, 24, -166, [tint(hair, 20), hair, tint(hair, -25)]));
+      for (let i = 0; i < 3; i++) line(c, [[-14 + i * 10, -197], [-15 + i * 10, -187]], tint(hair, 30), 1.2);
+    } else if (a.style === 3) {
+      path(c, (p) => {
+        p.moveTo(-20, -166);
+        p.quadraticCurveTo(-34, -197, -7, -204);
+        p.quadraticCurveTo(31, -211, 31, -180);
+        p.lineTo(30, -143);
+        p.lineTo(19, -146);
+        p.lineTo(19, -184);
+        p.lineTo(3, -190);
+        p.lineTo(-14, -181);
+        p.lineTo(-18, -144);
+        p.lineTo(-30, -149);
+        p.closePath();
+      }, grad(c, -25, -200, 25, -140, [tint(hair, 30), hair, tint(hair, -30)]));
+      line(c, [[-24, -174], [-24, -151]], tint(hair, 35), 2);
+    } else {
+      path(c, (p) => {
+        p.moveTo(-22, -174);
+        p.quadraticCurveTo(-31, -200, -3, -202);
+        p.quadraticCurveTo(29, -205, 29, -181);
+        p.lineTo(20, -184);
+        p.lineTo(13, -192);
+        p.quadraticCurveTo(-2, -183, -14, -188);
+        p.lineTo(-15, -172);
+        p.closePath();
+      }, grad(c, -20, -200, 25, -175, [tint(hair, 30), hair, tint(hair, -25)]));
+    }
+    const blink = Math.sin(time * 0.91 + a.face * 1.7) > 0.996;
+    const fierce = g.traits.includes("aggressive") || g.traits.includes("impulsive");
+    line(c, [[-13, -174], [-3, -172 + (fierce ? 2 : 0)]], tint(hair, -20), 3.5);
+    line(c, [[12, -172], [22, -176 + (fierce ? 3 : 0)]], tint(hair, -20), 3.3);
+    if (blink) {
+      line(c, [[-11, -167], [-2, -166]], "#39291f", 2);
+      line(c, [[13, -166], [21, -167]], "#39291f", 2);
+    } else {
+      ellipse(c, -6, -166, 5, 3.3, "#d8d4b9", "#36291f", 1);
+      ellipse(c, 17, -166, 4.5, 3.1, "#d8d4b9", "#36291f", 1);
+      ellipse(c, -3, -166, 2.2, 2.8, "#283638");
+      ellipse(c, 19, -166, 2, 2.7, "#283638");
+      ellipse(c, -2.4, -167, 0.7, 0.7, "#fffbe0");
+    }
+    path(c, (p) => {
+      p.moveTo(6, -170);
+      p.lineTo(12, -157);
+      p.lineTo(5, -155);
+    }, tint(a.skin, -4), "#714e3b", 1.5);
+    line(c, [[5, -158], [10, -159]], tint(a.skin, 28), 1.4);
+    if (a.face === 1) line(c, [[-15, -172], [-11, -157]], tint(a.skin, -35), 1.4);
+    if (a.beard) {
+      path(c, (p) => {
+        p.moveTo(-18, -157);
+        p.lineTo(-9, -151);
+        p.lineTo(4, -155);
+        p.lineTo(20, -152);
+        p.lineTo(24, -157);
+        p.lineTo(20, -141);
+        p.lineTo(8, -132);
+        p.lineTo(-8, -139);
+        p.closePath();
+      }, grad(c, -17, -156, 23, -134, [tint(hair, 15), hair, tint(hair, -25)]), "#382a22", 1.5);
+      for (let i = 0; i < 5; i++) line(c, [[-8 + i * 5, -144], [-5 + i * 4, -138]], tint(hair, 25), 0.9);
+    }
+    const mouthY = a.beard ? -148 : -147;
+    path(c, (p) => {
+      p.moveTo(0, mouthY);
+      p.quadraticCurveTo(10, mouthY + (pose === "celebrate" ? 6 : 1), 18, mouthY - 2);
+    }, null, a.beard ? "#d0a47d" : "#5d392c", 2);
+    if (eq.head) {
+      if (eq.head.weight === 0) {
+        path(c, (p) => {
+          p.moveTo(-27, -150);
+          p.quadraticCurveTo(-40, -202, -10, -210);
+          p.quadraticCurveTo(28, -215, 31, -183);
+          p.lineTo(26, -170);
+          p.lineTo(21, -191);
+          p.quadraticCurveTo(-7, -202, -21, -176);
+          p.lineTo(-18, -150);
+          p.closePath();
+        }, "#4a4533", "#211e1b", 3);
+      } else {
+        path(c, (p) => {
+          p.moveTo(-29, -174);
+          p.lineTo(-26, -194);
+          p.quadraticCurveTo(-12, -215, 11, -209);
+          p.quadraticCurveTo(31, -205, 32, -176);
+          p.lineTo(23, -171);
+          p.lineTo(21, -187);
+          p.lineTo(-18, -186);
+          p.lineTo(-21, -169);
+          p.closePath();
+        }, steel);
+        line(c, [[-27, -181], [30, -181]], "#c0a164", 4);
+        path(c, (p) => {
+          p.moveTo(3, -207);
+          p.lineTo(8, -208);
+          p.lineTo(10, -159);
+          p.lineTo(3, -157);
+          p.closePath();
+        }, "#b8bba4", "#3d4440", 1.5);
+        if (eq.head.weight >= 2) {
+          path(c, (p) => {
+            p.moveTo(-4, -207);
+            p.quadraticCurveTo(-4, -230, 24, -225);
+            p.lineTo(35, -213);
+            p.quadraticCurveTo(10, -221, 10, -207);
+            p.closePath();
+          }, "#914c3a", "#3d2522", 2);
+        }
+      }
+    }
+    if (eq.accessory) {
+      line(c, [[-17, -136], [0, -122], [19, -133]], "#c7ad70", 1.5);
+      path(c, (p) => {
+        p.moveTo(0, -126);
+        p.lineTo(5, -119);
+        p.lineTo(0, -112);
+        p.lineTo(-5, -119);
+        p.closePath();
+      }, "#7bc7ca", "#d6b56e", 1.5);
+    }
+    c.restore();
+    if (pose === "cast") {
+      const orb = grad(c, frontHand[0] - 13, frontHand[1] - 30, frontHand[0] + 17, frontHand[1], ["#e0ffff", "#70cddc", "#267a98"]);
+      c.shadowColor = "#55d9ef";
+      c.shadowBlur = 25;
+      ellipse(c, frontHand[0] + 9, frontHand[1] - 16, 11 + Math.sin(time * 5) * 2, 11, orb);
+      c.shadowBlur = 0;
+      for (let i = 0; i < 6; i++) {
+        const t = time * 2 + i;
+        ellipse(c, frontHand[0] + Math.cos(t) * 25, frontHand[1] - 16 + Math.sin(t) * 21, 1.8, 1.8, "#b3f3ea");
       }
     }
     c.restore();
@@ -1313,281 +1671,622 @@
   function portraitCanvas(canvas, g, inventory, time = 0, pose = "idle") {
     const c = canvas.getContext("2d"), w2 = canvas.width, h = canvas.height;
     c.clearRect(0, 0, w2, h);
-    const gradient = c.createRadialGradient(w2 / 2, h * 0.5, 10, w2 / 2, h * 0.5, w2 * 0.65);
-    gradient.addColorStop(0, "#d9bc7a33");
-    gradient.addColorStop(1, "#d9bc7a00");
-    c.fillStyle = gradient;
+    const halo = c.createRadialGradient(w2 * 0.5, h * 0.45, 5, w2 * 0.5, h * 0.52, w2 * 0.65);
+    halo.addColorStop(0, "#b8934c22");
+    halo.addColorStop(1, "#5a422500");
+    c.fillStyle = halo;
     c.fillRect(0, 0, w2, h);
-    drawCharacter(c, g, w2 / 2, h - 10, Math.min(w2 / 110, (h - 10) / 200), false, time, pose, equipmentOf(g, inventory));
+    c.save();
+    c.strokeStyle = "#ad8a4530";
+    c.lineWidth = 1;
+    c.beginPath();
+    c.ellipse(w2 * 0.5, h * 0.55, w2 * 0.37, h * 0.4, 0, 0, TAU);
+    c.stroke();
+    c.restore();
+    drawCharacter(c, g, w2 * 0.48, h - 12, Math.min(w2 / 145, (h - 18) / 238), false, time, pose, equipmentOf(g, inventory));
   }
 
   // js/ui/scenery.js
-  var FACILITY_POS = { strength: [0.17, 0.35], agility: [0.39, 0.27], attack: [0.63, 0.27], defense: [0.85, 0.35], endurance: [0.17, 0.79], vitality: [0.39, 0.86], magic: [0.63, 0.86], charisma: [0.85, 0.79] };
-  function house(c, x, y, w2, h, color) {
-    c.fillStyle = "#1b221b25";
-    c.fillRect(x + 7, y + 10, w2, h);
-    c.fillStyle = color;
-    c.fillRect(x, y, w2, h);
-    c.strokeStyle = "#3f4433";
-    c.lineWidth = 2;
-    c.strokeRect(x, y, w2, h);
-    c.fillStyle = "#605540";
+  var FACILITY_POS = { strength: [0.22, 0.43], agility: [0.37, 0.35], attack: [0.68, 0.35], defense: [0.82, 0.45], endurance: [0.18, 0.71], vitality: [0.37, 0.76], magic: [0.65, 0.73], charisma: [0.83, 0.7] };
+  var TAU2 = Math.PI * 2;
+  var cache = /* @__PURE__ */ new Map();
+  function rng(seed) {
+    return () => {
+      seed = Math.imul(seed, 1664525) + 1013904223 | 0;
+      return (seed >>> 0) / 4294967296;
+    };
+  }
+  function polygon(c, pts, fill, stroke = null, width = 1) {
     c.beginPath();
-    c.moveTo(x - 12, y);
-    c.lineTo(x + w2 * 0.5, y - h * 0.55);
-    c.lineTo(x + w2 + 12, y);
+    c.moveTo(...pts[0]);
+    pts.slice(1).forEach((p) => c.lineTo(...p));
     c.closePath();
+    c.fillStyle = fill;
     c.fill();
+    if (stroke) {
+      c.strokeStyle = stroke;
+      c.lineWidth = width;
+      c.stroke();
+    }
+  }
+  function ellipse2(c, x, y, rx, ry, color) {
+    c.fillStyle = color;
+    c.beginPath();
+    c.ellipse(x, y, rx, ry, 0, 0, TAU2);
+    c.fill();
+  }
+  function gradient(c, x, y, x2, y2, colors) {
+    const g = c.createLinearGradient(x, y, x2, y2);
+    colors.forEach((color, i) => g.addColorStop(i / (colors.length - 1), color));
+    return g;
+  }
+  function line2(c, pts, color, width = 2) {
+    c.beginPath();
+    c.moveTo(...pts[0]);
+    pts.slice(1).forEach((p) => c.lineTo(...p));
+    c.strokeStyle = color;
+    c.lineWidth = width;
     c.stroke();
-    c.fillStyle = "#d1ad64";
-    c.fillRect(x + w2 * 0.4, y + h * 0.45, w2 * 0.2, h * 0.55);
+  }
+  function glow(c, x, y, r, color) {
+    const g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, "#00000000");
+    ellipse2(c, x, y, r, r, g);
+  }
+  function cached(key, w2, h, render2) {
+    if (cache.has(key)) return cache.get(key);
+    const canvas = document.createElement("canvas");
+    canvas.width = w2;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(w2 / 1600, h / 900);
+    render2(ctx);
+    if (cache.size > 6) cache.delete(cache.keys().next().value);
+    cache.set(key, canvas);
+    return canvas;
+  }
+  function pine(c, x, y, size, color) {
+    c.fillStyle = "#211f1d";
+    c.fillRect(x - size * 0.045, y - size * 0.2, size * 0.09, size * 0.3);
+    for (let i = 0; i < 4; i++) {
+      const yy = y - size + i * size * 0.2, ww = size * (0.21 + i * 0.11);
+      polygon(c, [[x, yy], [x - ww, yy + size * 0.4], [x + ww, yy + size * 0.4]], color);
+      line2(c, [[x, yy + size * 0.05], [x + ww * 0.7, yy + size * 0.32]], "#ffffff05", 1);
+    }
+  }
+  function mountain(c, points, fill, highlight) {
+    polygon(c, points, fill);
+    for (let i = 1; i < points.length - 1; i += 2) polygon(c, [points[i], points[i + 1], [points[i][0] - 40, points[i][1] + 120]], highlight);
+  }
+  function stones(c, x, y, w2, h, rand, color = "#ffffff0a") {
+    for (let i = 0; i < w2 * h / 130; i++) {
+      const xx = x + rand() * w2, yy = y + rand() * h;
+      c.fillStyle = i % 3 === 0 ? "#060b0b20" : color;
+      c.fillRect(xx, yy, 2 + rand() * 4, 1 + rand() * 2);
+    }
+  }
+  function wall(c, x, y, w2, h) {
+    c.fillStyle = gradient(c, x, y, x, y + h, ["#a58d65", "#6f6650", "#514f41"]);
+    c.fillRect(x, y, w2, h);
+    c.strokeStyle = "#322f29";
+    c.lineWidth = 1.3;
+    for (let row = 0; row < Math.ceil(h / 16); row++) for (let col = 0; col < w2 / 36; col++) {
+      const xx = x + col * 36 - (row % 2 ? 18 : 0);
+      c.strokeRect(xx, y + row * 16, 36, 16);
+    }
+    c.fillStyle = "#b6a077";
+    c.fillRect(x - 2, y - 4, w2 + 4, 7);
+    for (let j = 0; j < w2; j += 27) c.fillRect(x + j, y - 15, 18, 15);
+  }
+  function house(c, x, y, w2, h, roof = "#655649", level = 1) {
+    c.save();
+    c.translate(x, y);
+    ellipse2(c, 12, 10, w2 * 0.68, 22, "#080e0d55");
+    const depth = w2 * 0.27;
+    polygon(c, [[-w2 / 2, 0], [w2 / 2, 0], [w2 / 2, -h], [-w2 / 2, -h]], gradient(c, 0, -h, 0, 0, ["#b69c72", "#89704f", "#574c38"]), "#302e25", 2);
+    polygon(c, [[w2 / 2, 0], [w2 / 2 + depth, -depth * 0.5], [w2 / 2 + depth, -h - depth * 0.5], [w2 / 2, -h]], "#5e5540", "#302e25", 2);
+    for (let i = 0; i < 4; i++) line2(c, [[-w2 / 2, -h + i * h / 4], [w2 / 2, -h + i * h / 4]], "#423e2d40", 1);
+    for (const xx of [-w2 * 0.4, w2 * 0.4]) {
+      c.fillStyle = "#493c2c";
+      c.fillRect(xx - 4, -h, 8, h);
+      line2(c, [[xx - 2, -h], [xx - 2, 0]], "#b7955b", 1);
+    }
+    const apex = [0, -h - w2 * 0.37];
+    polygon(c, [[-w2 * 0.64, -h + 6], apex, [w2 * 0.66, -h + 6]], gradient(c, 0, -h - w2 * 0.4, 0, -h, [roof, "#302f2c"]), "#202421", 3);
+    polygon(c, [apex, [depth, -h - w2 * 0.37 - depth * 0.5], [w2 * 0.66 + depth, -h - depth * 0.5 + 6], [w2 * 0.66, -h + 6]], roof, "#292c26", 2);
+    for (let j = 0; j < 5; j++) {
+      const yy = -h - w2 * 0.31 + j * w2 * 0.075;
+      const spread = (j + 1) * w2 * 0.11;
+      line2(c, [[-spread, yy], [spread, yy]], "#c5b07a25", 2);
+    }
+    for (let j = 0; j < 7; j++) line2(c, [[w2 * 0.65 + j * depth / 6, -h + 5 - j * depth / 12], [j * depth / 6, -h - w2 * 0.37 - j * depth / 12]], "#bda37422", 1);
+    c.fillStyle = "#2a2d24";
+    c.beginPath();
+    c.roundRect(-w2 * 0.12, -h * 0.65, w2 * 0.24, h * 0.65, [w2 * 0.12, w2 * 0.12, 0, 0]);
+    c.fill();
+    c.fillStyle = "#8d6638";
+    c.fillRect(-w2 * 0.1, -h * 0.5, w2 * 0.2, h * 0.5);
+    line2(c, [[0, -h * 0.5], [0, 0]], "#31271e", 2);
+    ellipse2(c, w2 * 0.055, -h * 0.22, 2, 2, "#d9ae5e");
+    for (const xx of [-w2 * 0.31, w2 * 0.3]) {
+      c.fillStyle = "#2c352c";
+      c.fillRect(xx - 9, -h * 0.68, 18, 23);
+      c.fillStyle = "#e9bb62";
+      c.fillRect(xx - 6, -h * 0.65, 12, 17);
+      line2(c, [[xx, -h * 0.66], [xx, -h * 0.4]], "#5b492b", 2);
+      line2(c, [[xx - 8, -h * 0.54], [xx + 8, -h * 0.54]], "#5b492b", 2);
+    }
+    if (level > 1) {
+      line2(c, [[-w2 * 0.4, -h * 0.9], [w2 * 0.4, -h * 0.9]], "#c3a25d", 3);
+      for (let i = 0; i < level; i++) ellipse2(c, -(level - 1) * 7 + i * 14, -h * 0.82, 2.5, 2.5, "#d6b363");
+    }
+    c.restore();
+  }
+  function tent(c, x, y, w2, color) {
+    ellipse2(c, x + 7, y + 7, w2 * 0.65, 19, "#09100d50");
+    polygon(c, [[x - w2 * 0.6, y], [x, y - w2 * 0.85], [x + w2 * 0.6, y]], gradient(c, x - w2 * 0.5, y - w2 * 0.6, x + w2 * 0.5, y, [color, "#584c3a"]), "#302e25", 2);
+    polygon(c, [[x, y - w2 * 0.85], [x + w2 * 0.6, y], [x + w2 * 0.8, y - 18], [x + w2 * 0.22, y - w2 * 0.9]], color, "#302e25", 2);
+    polygon(c, [[x - w2 * 0.15, y], [x, y - w2 * 0.5], [x + w2 * 0.15, y]], "#292c24");
+    line2(c, [[x, y - w2 * 0.9], [x, y + 4]], "#b5aa84", 3);
+    line2(c, [[x - w2 * 0.5, y - 8], [x - w2 * 0.7, y + 9]], "#a4a18a", 1);
+  }
+  function barrel(c, x, y, scale = 1) {
+    c.save();
+    c.translate(x, y);
+    c.scale(scale, scale);
+    c.fillStyle = gradient(c, -13, 0, 13, 0, ["#4d3826", "#a47b42", "#5d432b"]);
+    c.beginPath();
+    c.roundRect(-13, -29, 26, 30, 6);
+    c.fill();
+    ellipse2(c, 0, -28, 12, 4, "#b08a50");
+    for (const yy of [-22, -7]) {
+      c.fillStyle = "#444e45";
+      c.fillRect(-13, yy, 26, 4);
+      line2(c, [[-12, yy], [12, yy]], "#889180", 1);
+    }
+    line2(c, [[0, -24], [0, -9]], "#4b362a", 1);
+    c.restore();
+  }
+  function target(c, x, y, size = 1) {
+    c.save();
+    c.translate(x, y);
+    c.scale(size, size);
+    line2(c, [[-11, 0], [0, -55], [12, 0]], "#6c4c2e", 7);
+    for (let i = 4; i >= 1; i--) ellipse2(c, 0, -45, i * 7, i * 8, ["", "#923b2b", "#d1b778", "#69452e", "#a1854e"][i]);
+    line2(c, [[4, -47], [31, -66]], "#bfab7d", 2);
+    polygon(c, [[31, -66], [24, -64], [28, -60]], "#798b87");
+    c.restore();
+  }
+  function banner(c, x, y, color, time, scale = 1) {
+    c.save();
+    c.translate(x, y);
+    c.scale(scale, scale);
+    line2(c, [[0, 0], [0, 100]], "#58442d", 5);
+    line2(c, [[-4, 3], [43, 3]], "#c3a66b", 3);
+    const wind = Math.sin(time * 1.8 + x) * 4;
+    polygon(c, [[3, 5], [43, 7 + wind], [40, 70 + wind], [24, 83], [4, 70]], gradient(c, 2, 0, 45, 0, [color, "#29262a"]), "#221f1c", 1);
+    line2(c, [[8, 10], [8, 66], [24, 77], [35, 67]], "#d7b77890", 1);
+    polygon(c, [[24, 24], [31, 38], [24, 51], [17, 38]], "#d2b073");
+    c.restore();
+  }
+  function torch(c, x, y, time, scale = 1) {
+    c.save();
+    c.translate(x, y);
+    c.scale(scale, scale);
+    glow(c, 0, -21, 62, "#f1a44428");
+    line2(c, [[0, 4], [0, -20]], "#332b20", 6);
+    line2(c, [[-9, -18], [9, -18]], "#8e7751", 3);
+    const flick = Math.sin(time * 11 + x) * 3;
+    polygon(c, [[-7, -19], [-9, -29], [0, -48 - flick], [5, -31], [9, -26], [6, -18]], "#d88332");
+    polygon(c, [[-4, -20], [-4, -31], [1, -40 - flick], [5, -26], [3, -20]], "#f6cf68");
+    ellipse2(c, 0, -25, 2, 5, "#fff4c6");
+    c.restore();
+  }
+  function baseBackdrop(c, s) {
+    const random = rng(7284);
+    c.fillStyle = gradient(c, 0, 0, 0, 900, ["#243e4a", "#9b9b7b", "#b49a66"]);
+    c.fillRect(0, 0, 1600, 900);
+    glow(c, 1200, 115, 340, "#f0c47855");
+    ellipse2(c, 1200, 112, 46, 46, "#eadbaa");
+    mountain(c, [[0, 210], [130, 95], [290, 190], [480, 62], [670, 177], [830, 85], [1e3, 218], [1220, 74], [1450, 171], [1600, 93], [1600, 360], [0, 360]], "#42595a", "#607172");
+    mountain(c, [[0, 260], [180, 185], [310, 243], [580, 139], [740, 243], [940, 163], [1080, 246], [1300, 165], [1510, 239], [1600, 184], [1600, 420], [0, 420]], "#354e46", "#4b6050");
+    for (let i = 0; i < 90; i++) {
+      const x = i * 19, y = 262 + Math.sin(i * 3.5) * 26;
+      pine(c, x, y, 40 + random() * 67, "#263e35");
+    }
+    polygon(c, [[0, 302], [420, 258], [1040, 258], [1600, 330], [1600, 900], [0, 900]], gradient(c, 0, 300, 0, 900, ["#69704a", "#646340", "#35472e"]));
+    ellipse2(c, 817, 579, 647, 264, gradient(c, 0, 330, 0, 845, ["#9c8a59", "#a58b55", "#72673e"]));
+    c.save();
+    c.strokeStyle = "#b5a16b70";
+    c.lineWidth = 45;
+    c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(820, 875);
+    c.bezierCurveTo(850, 700, 746, 493, 815, 283);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(180, 588);
+    c.bezierCurveTo(539, 491, 1061, 483, 1430, 588);
+    c.stroke();
+    c.restore();
+    stones(c, 80, 310, 1440, 590, random, "#d2b67b30");
+    for (let i = 0; i < 200; i++) {
+      const x = random() * 1600, y = 370 + random() * 520;
+      if (x < 180 || x > 1440) {
+        line2(c, [[x, y], [x + random() * 6 - 3, y - 7 - random() * 8]], "#82936555", 1);
+      }
+    }
+    wall(c, 185, 307, 1220, 43);
+    for (const x of [176, 1379]) {
+      house(c, x, 355, 53, 91, "#56605b", s.housing);
+    }
+    house(c, 787, 331, 220, 105, "#596762", s.housing);
+    c.fillStyle = "#443a2c";
+    c.fillRect(768, 178, 12, 43);
+    c.fillStyle = "#c5a56a";
+    c.fillRect(760, 176, 27, 5);
+    for (let i = 0; i < 5; i++) ellipse2(c, 775 + Math.sin(i * 3) * 5, 162 - i * 10, 8 + i * 5, 7 + i * 3, `rgba(180,182,158,${0.13 - i * 0.018})`);
+    for (const [key, [px, py]] of Object.entries(FACILITY_POS)) {
+      const x = px * 1600, y = py * 900, level = s.buildings[key];
+      ellipse2(c, x + 12, y + 27, 100, 38, "#2c372040");
+      if (key === "strength") {
+        house(c, x - 17, y - 8, 130, 73, "#7e5140", level);
+        c.fillStyle = "#3b352c";
+        c.fillRect(x - 72, y - 79, 29, 58);
+        c.fillStyle = "#ed9a48";
+        c.fillRect(x - 66, y - 64, 17, 21);
+        glow(c, x - 56, y - 53, 45, "#ff9c392d");
+        polygon(c, [[x + 29, y + 20], [x + 72, y + 20], [x + 83, y + 10], [x + 34, y + 9], [x + 18, y + 13]], "#91a29b", "#28332c", 2);
+        polygon(c, [[x + 41, y + 19], [x + 61, y + 19], [x + 57, y + 37], [x + 38, y + 37]], "#4d5d54");
+        barrel(c, x - 75, y + 27, 0.7);
+      } else if (key === "agility") {
+        tent(c, x - 13, y - 7, 96, "#73764c");
+        for (let i = 0; i < 4; i++) {
+          const xx = x - 78 + i * 46;
+          line2(c, [[xx, y + 37], [xx, y - 4]], "#695137", 8);
+          line2(c, [[xx - 10, y - 3], [xx + 11, y - 3]], "#bda370", 4);
+        }
+        line2(c, [[x - 78, y + 10], [x + 60, y + 10]], "#baa880", 2);
+      } else if (key === "attack") {
+        house(c, x + 18, y - 12, 125, 64, "#6c5d43", level);
+        target(c, x - 67, y + 31, 0.75);
+        target(c, x + 3, y + 34, 0.9);
+        barrel(c, x + 85, y + 20, 0.8);
+      } else if (key === "defense") {
+        house(c, x, y, 143, 89, "#505e5e", level);
+        for (let i = 0; i < 3; i++) {
+          const xx = x - 62 + i * 54;
+          line2(c, [[xx, y + 29], [xx, y - 6]], "#6a5034", 6);
+          polygon(c, [[xx - 15, y - 9], [xx + 15, y - 9], [xx + 12, y + 15], [xx, y + 25], [xx - 12, y + 15]], i % 2 ? "#7e6650" : "#687d78", "#b6a073", 2);
+        }
+      } else if (key === "endurance") {
+        c.strokeStyle = "#c3ac76";
+        c.lineWidth = 7;
+        c.beginPath();
+        c.ellipse(x, y, 113, 43, -0.15, 0, TAU2);
+        c.stroke();
+        c.strokeStyle = "#7c6e43";
+        c.lineWidth = 2;
+        c.beginPath();
+        c.ellipse(x, y, 95, 32, -0.15, 0, TAU2);
+        c.stroke();
+        for (let j = 0; j < 3; j++) {
+          const xx = x - 62 + j * 60;
+          line2(c, [[xx, y + 26], [xx, y + 2], [xx + 34, y - 4], [xx + 34, y + 20]], "#5f4930", 7);
+        }
+        barrel(c, x - 91, y - 23, 0.8);
+      } else if (key === "vitality") {
+        tent(c, x, y - 1, 122, "#bcb68a");
+        c.fillStyle = "#658b6a";
+        c.fillRect(x - 8, y - 74, 18, 39);
+        c.fillRect(x - 19, y - 64, 40, 17);
+        for (let j = 0; j < 4; j++) {
+          const xx = x - 83 + j * 52;
+          ellipse2(c, xx, y + 20, 14, 6, "#4e4731");
+          for (let k = 0; k < 5; k++) ellipse2(c, xx + k * 3 - 6, y + 7 - k % 2 * 4, 5, 10, k % 2 ? "#7b9860" : "#537f54");
+        }
+      } else if (key === "magic") {
+        house(c, x, y - 4, 132, 118, "#415e6b", level);
+        polygon(c, [[x - 20, y - 148], [x, y - 205], [x + 25, y - 148], [x, y - 124]], gradient(c, x - 20, y - 200, x + 25, y - 130, ["#a1e6e4", "#3f8399", "#245363"]), "#162d36", 3);
+        line2(c, [[x, y - 197], [x, y - 135]], "#cffcf0", 1.5);
+        c.strokeStyle = "#64afa588";
+        c.lineWidth = 2;
+        c.beginPath();
+        c.ellipse(x, y + 21, 95, 27, 0, 0, TAU2);
+        c.stroke();
+        for (let i = 0; i < 8; i++) {
+          const a = i * TAU2 / 8;
+          line2(c, [[x + Math.cos(a) * 86, y + 21 + Math.sin(a) * 23], [x + Math.cos(a) * 98, y + 21 + Math.sin(a) * 29]], "#a4c6a4", 2);
+        }
+      } else {
+        house(c, x - 2, y - 12, 142, 82, "#825e4e", level);
+        polygon(c, [[x - 63, y + 10], [x + 54, y + 10], [x + 73, y + 24], [x - 81, y + 24]], "#756342", "#453d2d", 2);
+        c.fillStyle = "#574b32";
+        c.fillRect(x - 15, y - 25, 32, 42);
+        polygon(c, [[x - 20, y - 25], [x + 18, y - 27], [x + 25, y - 20], [x - 18, y - 17]], "#c1ab74");
+      }
+      if (level > 1) {
+        for (let j = 0; j < level - 1; j++) {
+          ellipse2(c, x - 22 + j * 14, y + 43, 2.3, 2.3, "#dfc377");
+        }
+      }
+    }
+    for (const [x, y] of [[624, 430], [943, 402], [1302, 577], [235, 571]]) {
+      barrel(c, x, y, 0.85);
+      barrel(c, x + 22, y + 8, 0.6);
+    }
+    for (let i = 0; i < 24; i++) {
+      const x = i < 12 ? random() * 140 : 1460 + random() * 160, y = 460 + random() * 500;
+      pine(c, x, y, 90 + random() * 120, i % 2 ? "#243c2c" : "#2e4932");
+    }
+    c.fillStyle = gradient(c, 0, 0, 0, 900, ["#07131250", "#07131200", "#07131200", "#071312a0"]);
+    c.fillRect(0, 0, 1600, 900);
   }
   function drawBase(canvas, s, time) {
-    const c = canvas.getContext("2d"), w2 = canvas.width, h = canvas.height;
-    c.clearRect(0, 0, w2, h);
-    c.fillStyle = "#56634b";
-    c.fillRect(0, 0, w2, h);
-    for (let i = 0; i < 100; i++) {
-      const x = i * 137 % w2, y = i * 97 % h;
-      c.fillStyle = i % 3 ? "#697453" : "#4a5b43";
-      c.beginPath();
-      c.ellipse(x, y, 20 + i % 7 * 4, 5, 0, 0, Math.PI * 2);
-      c.fill();
+    const c = canvas.getContext("2d"), w2 = canvas.width, h = canvas.height, key = `base:${w2}:${h}:${s.housing}:${Object.values(s.buildings).join(",")}`;
+    c.drawImage(cached(key, w2, h, (ctx) => baseBackdrop(ctx, s)), 0, 0);
+    c.save();
+    c.scale(w2 / 1600, h / 900);
+    banner(c, 634, 275, "#814a36", time, 0.72);
+    banner(c, 967, 275, "#814a36", time, 0.72);
+    for (const [xx, yy] of [[276, 481], [1315, 489], [767, 371], [901, 371], [555, 697], [1212, 686]]) torch(c, xx, yy, time, 0.7);
+    const mx = FACILITY_POS.magic[0] * 1600, my = FACILITY_POS.magic[1] * 900;
+    glow(c, mx, my - 152, 64 + Math.sin(time * 2) * 7, "#70d8de24");
+    for (let i = 0; i < 9; i++) {
+      const a = time * 0.5 + i * TAU2 / 9;
+      ellipse2(c, mx + Math.cos(a) * 51, my - 150 + Math.sin(a) * 22, 1.4, 1.4, "#b4f0df");
     }
-    c.fillStyle = "#c3b184";
-    c.fillRect(50, 26, w2 - 100, 14);
-    c.fillRect(24, 38, 25, h - 70);
-    c.fillRect(w2 - 49, 38, 25, h - 70);
-    c.fillRect(50, h - 44, w2 - 100, 18);
-    c.strokeStyle = "#665f49";
-    c.lineWidth = 2;
-    for (let i = 50; i < w2 - 40; i += 32) {
-      c.strokeRect(i, 26, 30, 14);
-      c.strokeRect(i, h - 44, 30, 18);
+    for (const [key2, [px, py]] of Object.entries(FACILITY_POS)) {
+      const trainees = s.gladiators.filter((g) => g.training === key2);
+      trainees.forEach((g, i) => {
+        const x = px * 1600 - 40 + i * 29, y = py * 900 + 43;
+        drawCharacter(c, g, x, y, 0.31, false, time, "train", equipmentOf(g, s.inventory));
+      });
     }
-    for (const [x, y] of [[25, 10], [w2 - 73, 10], [25, h - 66], [w2 - 73, h - 66]]) {
-      c.fillStyle = "#999276";
-      c.fillRect(x, y, 48, 49);
-      for (let i = 0; i < 3; i++) c.fillRect(x + i * 18, y - 7, 11, 12);
+    s.gladiators.filter((g) => !g.training).slice(0, 9).forEach((g, i) => {
+      const x = 686 + i % 4 * 64 + Math.sin(time * 0.3 + i) * 14, y = 508 + Math.floor(i / 4) * 40;
+      drawCharacter(c, g, x, y, 0.37, i % 2 === 0, time, g.recovery ? "rest" : "idle", equipmentOf(g, s.inventory));
+    });
+    for (let i = 0; i < 26; i++) {
+      const x = (i * 137 + time * (7 + i % 3)) % 1600, y = 390 + i * 79 % 420 + Math.sin(time + i) * 12;
+      c.globalAlpha = 0.15 + 0.2 * Math.sin(time * 0.8 + i) ** 2;
+      ellipse2(c, x, y, i % 3 === 0 ? 1.8 : 1, 1, "#f0c672");
     }
-    c.fillStyle = "#b4a078";
-    c.beginPath();
-    c.ellipse(w2 * 0.5, h * 0.55, w2 * 0.27, h * 0.19, 0, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = "#d4be8c";
-    c.lineWidth = 9;
-    c.stroke();
-    c.strokeStyle = "#c2ae82";
-    c.lineWidth = 26;
-    c.beginPath();
-    c.moveTo(w2 * 0.5, 35);
-    c.lineTo(w2 * 0.5, h - 30);
-    c.moveTo(49, h * 0.55);
-    c.lineTo(w2 - 49, h * 0.55);
-    c.stroke();
-    house(c, w2 * 0.42, 59, 175, 59, "#b0a17a");
-    c.fillStyle = "#4e5a44";
-    c.fillRect(w2 * 0.47, 48, 55, 38);
-    c.fillStyle = "#dfb967";
-    c.font = "bold 15px Georgia";
-    c.textAlign = "center";
-    c.fillText("CC", w2 * 0.5, 73);
-    for (const [key, [px, py]] of Object.entries(FACILITY_POS)) {
-      const x = px * w2, y = py * h, level = s.buildings[key];
-      c.fillStyle = "#45503a";
-      c.fillRect(x - 69, y - 43, 138, 73);
-      c.strokeStyle = level > 1 ? "#cab074" : "#7d8261";
-      c.lineWidth = 3;
-      c.strokeRect(x - 69, y - 43, 138, 73);
-      if (key === "strength") {
-        c.fillStyle = "#423d32";
-        c.fillRect(x - 27, y - 23, 55, 9);
-        for (const side of [-1, 1]) {
-          c.fillStyle = "#858276";
-          c.fillRect(x + side * 23 - 6, y - 36, 13, 34);
-        }
-      }
-      if (key === "agility") {
-        c.strokeStyle = "#a6b086";
-        c.lineWidth = 5;
-        for (let j = 0; j < 4; j++) {
-          c.beginPath();
-          c.moveTo(x - 45 + j * 30, y - 12);
-          c.lineTo(x - 45 + j * 30, y + 15);
-          c.stroke();
-        }
-        c.strokeStyle = "#ccbb8c";
-        c.beginPath();
-        c.moveTo(x - 48, y - 12);
-        c.lineTo(x + 48, y - 12);
-        c.stroke();
-      }
-      if (key === "attack") {
-        c.fillStyle = "#aa8d5a";
-        c.beginPath();
-        c.arc(x, y - 10, 27, 0, Math.PI * 2);
-        c.fill();
-        for (let j = 3; j >= 1; j--) {
-          c.strokeStyle = j % 2 ? "#5e4636" : "#d4c9a3";
-          c.lineWidth = 5;
-          c.beginPath();
-          c.arc(x, y - 10, j * 7, 0, Math.PI * 2);
-          c.stroke();
-        }
-      }
-      if (key === "defense") {
-        for (let j = 0; j < 3; j++) {
-          c.fillStyle = "#79857d";
-          c.fillRect(x - 43 + j * 30, y - 31, 22, 35);
-          c.fillStyle = "#c5ad72";
-          c.fillRect(x - 35 + j * 30, y - 28, 5, 28);
-        }
-      }
-      if (key === "endurance") {
-        c.strokeStyle = "#b4a377";
-        c.lineWidth = 6;
-        c.beginPath();
-        c.ellipse(x, y - 8, 46, 22, 0, 0, Math.PI * 2);
-        c.stroke();
-      }
-      if (key === "vitality") {
-        c.fillStyle = "#aac4a1";
-        c.fillRect(x - 45, y - 27, 90, 31);
-        c.fillStyle = "#d9c9a3";
-        c.fillRect(x - 44, y - 28, 20, 30);
-        c.fillStyle = "#b4cbd2";
-        c.fillRect(x + 33, y - 34, 12, 16);
-      }
-      if (key === "magic") {
-        c.strokeStyle = "#91aaa4";
-        c.lineWidth = 2;
-        c.beginPath();
-        c.ellipse(x, y - 4, 47, 23, 0, 0, Math.PI * 2);
-        c.stroke();
-        c.fillStyle = `rgba(140,190,219,${0.45 + Math.sin(time * 2) * 0.15})`;
-        c.beginPath();
-        c.arc(x, y - 19, 16 + Math.sin(time * 2) * 3, 0, Math.PI * 2);
-        c.fill();
-      }
-      if (key === "charisma") {
-        c.fillStyle = "#9d8858";
-        c.fillRect(x - 39, y - 10, 78, 25);
-        c.fillStyle = "#5a4e38";
-        c.fillRect(x - 21, y - 35, 42, 28);
-      }
-      const trainees = s.gladiators.filter((g) => g.training === key);
-      trainees.forEach((g, i) => drawCharacter(c, g, x - 23 + i * 21, y + 27, 0.32, false, time, "train", equipmentOf(g, s.inventory)));
-    }
-    const resting = s.gladiators.filter((g) => !g.training);
-    resting.slice(0, 6).forEach((g, i) => drawCharacter(c, g, w2 * 0.4 + i * 42, h * 0.57 + 9, 0.37, i % 2 === 0, time, g.recovery ? "rest" : "idle", equipmentOf(g, s.inventory)));
-    for (const x of [75, w2 - 75]) {
-      c.fillStyle = "#42392b";
-      c.fillRect(x, h * 0.54, 5, 29);
-      c.fillStyle = "#e5a550";
-      c.beginPath();
-      c.ellipse(x + 2, h * 0.54 - 5, 6, 10 + Math.sin(time * 8 + x) * 2, 0, 0, Math.PI * 2);
-      c.fill();
-    }
+    c.globalAlpha = 1;
+    c.restore();
   }
-  function drawArena(canvas, b, time, progress = 1, previous = null) {
-    const c = canvas.getContext("2d"), w2 = canvas.width, h = canvas.height;
-    const imperial = b.meta.arena === "imperial", stone = b.meta.arena === "stone";
-    const sky = c.createLinearGradient(0, 0, 0, h);
-    sky.addColorStop(0, imperial ? "#343849" : stone ? "#535c65" : "#81928f");
-    sky.addColorStop(1, "#d0b990");
-    c.fillStyle = sky;
-    c.fillRect(0, 0, w2, h);
-    c.fillStyle = "#dcd4b62a";
-    c.beginPath();
-    c.arc(w2 * 0.8, 64, 32, 0, Math.PI * 2);
-    c.fill();
-    c.fillStyle = "#5b6059";
-    for (let i = 0; i < 12; i++) {
-      const x = i * 100 - 10;
-      c.fillRect(x, 70, 80, 165);
-      c.fillStyle = "#3e4947";
+  function arenaBackdrop(c, type) {
+    const night = type === "imperial", stone = type === "stone", r = rng(8721);
+    c.fillStyle = gradient(c, 0, 0, 0, 900, night ? ["#101b2b", "#3d425a", "#977355"] : stone ? ["#253d49", "#6e8a8a", "#a7a188"] : ["#263e4b", "#a4a789", "#e0bb76"]);
+    c.fillRect(0, 0, 1600, 900);
+    glow(c, 1187, 142, 400, night ? "#8c9cb92a" : "#f0d38c60");
+    ellipse2(c, 1187, 142, night ? 44 : 52, night ? 44 : 52, night ? "#cedbc5" : "#f2dca0");
+    mountain(c, [[0, 299], [150, 194], [302, 255], [524, 146], [700, 230], [892, 173], [1082, 258], [1320, 182], [1600, 305], [1600, 430], [0, 430]], night ? "#263445" : "#6d7b74", night ? "#334153" : "#8a9180");
+    for (let tier = 0; tier < 3; tier++) {
+      const y = 210 + tier * 105;
+      c.fillStyle = gradient(c, 0, y, 0, y + 114, [night ? "#67716d" : "#afa17d", night ? "#3c514f" : "#6e7560"]);
       c.beginPath();
-      c.roundRect(x + 16, 97, 48, 104, [22, 22, 0, 0]);
-      c.fill();
-      c.fillStyle = "#5b6059";
-    }
-    c.fillStyle = "#737563";
-    c.fillRect(0, 180, w2, 67);
-    for (let row = 0; row < 3; row++) for (let i = 0; i < 60; i++) {
-      const x = i * 19 + row * 6, y = 184 + row * 21 + Math.sin(time * 2 + i) * 2;
-      c.fillStyle = ["#b29d79", "#8b5846", "#a1a08a", "#747c83"][i % 4];
-      c.beginPath();
-      c.arc(x, y, 5, 0, Math.PI * 2);
-      c.fill();
-      c.fillRect(x - 4, y + 4, 8, 8);
-    }
-    c.fillStyle = "#9d9477";
-    c.fillRect(0, 248, w2, 42);
-    c.strokeStyle = "#6b6958";
-    c.lineWidth = 2;
-    for (let x = 0; x < w2; x += 64) c.strokeRect(x, 251, 64, 35);
-    c.fillStyle = "#bb9f70";
-    c.fillRect(0, 290, w2, h - 290);
-    c.fillStyle = "#cbb483";
-    c.beginPath();
-    c.ellipse(w2 / 2, 390, w2 * 0.48, 58, 0, 0, Math.PI * 2);
-    c.fill();
-    for (let i = 0; i < 35; i++) {
-      c.fillStyle = "#927c552b";
-      c.fillRect(i * 113 % w2, 304 + i * 31 % (h - 315), 3, 2);
-    }
-    for (const x of [95, w2 - 95]) {
-      c.fillStyle = imperial ? "#6c4b72" : "#744a3b";
-      c.beginPath();
-      c.moveTo(x - 24, 80);
-      c.lineTo(x + 24, 80);
-      c.lineTo(x + 24, 183 + Math.sin(time * 2) * 3);
-      c.lineTo(x, 200);
-      c.lineTo(x - 24, 183);
+      c.moveTo(0, y - 35);
+      c.quadraticCurveTo(800, y + 50, 1600, y - 35);
+      c.lineTo(1600, y + 104);
+      c.quadraticCurveTo(800, y + 170, 0, y + 104);
       c.closePath();
       c.fill();
-      c.fillStyle = "#dab76a";
-      c.font = "24px Georgia";
-      c.textAlign = "center";
-      c.fillText("✦", x, 128);
+      for (let i = 0; i < 18; i++) {
+        const x = i * 100 - 45, curve = Math.sin((x + 45) / 1600 * Math.PI) * 45;
+        const archY = y + 8 + curve;
+        c.fillStyle = night ? "#172f37" : "#414f45";
+        c.beginPath();
+        c.roundRect(x + 20, archY, 48, 77, [24, 24, 0, 0]);
+        c.fill();
+        c.strokeStyle = night ? "#8b908075" : "#c9b68a";
+        c.lineWidth = 8;
+        c.beginPath();
+        c.roundRect(x + 17, archY - 3, 54, 83, [28, 28, 0, 0]);
+        c.stroke();
+        c.strokeStyle = "#292e2944";
+        c.lineWidth = 1;
+        for (let j = 0; j < 4; j++) {
+          c.beginPath();
+          c.moveTo(x + 6, archY + j * 22);
+          c.lineTo(x + 15, archY + j * 22);
+          c.stroke();
+        }
+        if (tier === 1) {
+          c.fillStyle = "#d4ad6750";
+          c.fillRect(x + 37, archY + 39, 7, 12);
+        }
+      }
+      c.strokeStyle = night ? "#b3aa8d" : "#e1cba0";
+      c.lineWidth = 8;
+      c.beginPath();
+      c.moveTo(0, y + 104);
+      c.quadraticCurveTo(800, y + 170, 1600, y + 104);
+      c.stroke();
     }
+    for (let row = 0; row < 4; row++) for (let i = 0; i < 100; i++) {
+      const x = i * 17 + row % 2 * 8, curve = Math.sin(x / 1600 * Math.PI) * 35, y = 463 + row * 13 + curve;
+      const colors = night ? ["#7b8376", "#8b6d57", "#596c72", "#a18a68"] : ["#a8aa8b", "#9b6848", "#566b67", "#c2ae7a"];
+      c.fillStyle = colors[(i * 7 + row) % 4];
+      c.beginPath();
+      c.roundRect(x - 3, y + 3, 7, 11, [3, 3, 0, 0]);
+      c.fill();
+      ellipse2(c, x, y, 3.5, 4.5, i % 5 === 0 ? "#b69b72" : "#7d806c");
+    }
+    c.fillStyle = gradient(c, 0, 530, 0, 630, night ? ["#8d8771", "#4a564c"] : ["#c1ac7e", "#7e805f"]);
+    c.beginPath();
+    c.moveTo(0, 518);
+    c.quadraticCurveTo(800, 590, 1600, 518);
+    c.lineTo(1600, 620);
+    c.quadraticCurveTo(800, 659, 0, 620);
+    c.closePath();
+    c.fill();
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 30; i++) {
+      const x = i * 57 - (row % 2 ? 25 : 0), y = 530 + row * 26 + Math.sin(x / 1600 * Math.PI) * 40;
+      c.strokeStyle = "#333d3355";
+      c.lineWidth = 1.5;
+      c.strokeRect(x, y, 57, 25);
+      line2(c, [[x + 2, y + 1], [x + 53, y + 1]], "#e7d3a040", 1);
+    }
+    for (const x of [38, 1422]) {
+      polygon(c, [[x, 310], [x + 142, 310], [x + 142, 664], [x, 647]], gradient(c, x, 0, x + 142, 0, ["#6d705b", "#a59b76", "#454e44"]), "#334036", 3);
+      c.fillStyle = "#182b2a";
+      c.beginPath();
+      c.roundRect(x + 23, 462, 96, 177, [46, 46, 0, 0]);
+      c.fill();
+      for (let j = 0; j < 6; j++) line2(c, [[x + 32 + j * 15, 483], [x + 32 + j * 15, 638]], "#4f6457", 5);
+      line2(c, [[x + 20, 573], [x + 120, 573]], "#72806a", 6);
+      c.fillStyle = "#afa17a";
+      c.fillRect(x - 8, 303, 159, 17);
+      for (let j = 0; j < 5; j++) {
+        c.fillRect(x + j * 32 - 3, 286, 23, 23);
+      }
+    }
+    c.fillStyle = gradient(c, 0, 618, 0, 900, night ? ["#827557", "#a18c60", "#4d4d37"] : ["#b9a070", "#d4b67d", "#877647"]);
+    c.beginPath();
+    c.moveTo(0, 642);
+    c.quadraticCurveTo(800, 694, 1600, 642);
+    c.lineTo(1600, 900);
+    c.lineTo(0, 900);
+    c.closePath();
+    c.fill();
+    ellipse2(c, 800, 781, 668, 99, "#dbbc7d16");
+    c.strokeStyle = "#d8bf8870";
+    c.lineWidth = 3;
+    c.beginPath();
+    c.ellipse(800, 793, 650, 101, 0, 0, TAU2);
+    c.stroke();
+    stones(c, 0, 661, 1600, 239, r, night ? "#d6bd7930" : "#f4d39860");
+    for (let i = 0; i < 45; i++) {
+      const x = r() * 1600, y = 674 + r() * 209;
+      line2(c, [[x, y], [x + 7 + r() * 12, y - 2]], "#6b59372b", 1);
+    }
+    for (const x of [274, 1280]) {
+      c.fillStyle = "#4b4636";
+      c.fillRect(x - 13, 618, 27, 67);
+      ellipse2(c, x, 618, 22, 7, "#7a7355");
+      line2(c, [[x - 15, 622], [x + 15, 622]], "#ad9b69", 3);
+    }
+    const vignette = c.createRadialGradient(800, 540, 180, 800, 520, 920);
+    vignette.addColorStop(0, "#00000000");
+    vignette.addColorStop(0.65, "#0612140c");
+    vignette.addColorStop(1, "#061214b0");
+    c.fillStyle = vignette;
+    c.fillRect(0, 0, 1600, 900);
+  }
+  function drawArena(canvas, b, time, progress = 1, previous = null) {
+    const c = canvas.getContext("2d"), w2 = canvas.width, h = canvas.height, type = b.meta.arena || "regional";
+    c.clearRect(0, 0, w2, h);
+    c.drawImage(cached(`arena:${w2}:${h}:${type}`, w2, h, (ctx) => arenaBackdrop(ctx, type)), 0, 0);
+    c.save();
+    c.scale(w2 / 1600, h / 900);
+    banner(c, 193, 315, type === "imperial" ? "#735174" : "#a2643f", time, 1.15);
+    banner(c, 1362, 315, type === "imperial" ? "#735174" : "#a2643f", time, 1.15);
+    torch(c, 274, 630, time, 1.3);
+    torch(c, 1280, 630, time, 1.3);
     const positions = b.fighters.map((f, i) => {
       const before = previous?.[i] ?? f.pos;
-      return before + (f.pos - before) * Math.min(1, progress * 1.8);
+      return before + (f.pos - before) * Math.min(1, progress * 2.8);
     });
+    const px = (pos) => 190 + pos / 10 * 1220;
     b.fighters.forEach((f, i) => {
-      const x = 115 + positions[i] / 10 * (w2 - 230);
-      drawCharacter(c, f, x, h - 47, 1.15, i === 1, time, f.animation, f.gear);
-      if (Object.keys(f.buffs).length) {
-        c.strokeStyle = f.buffs.shield ? "#a5c1e7" : "#d3bb69";
-        c.lineWidth = 2;
-        c.globalAlpha = 0.6;
+      const x = px(positions[i]), y = 808;
+      if (f.buffs.guard || f.buffs.shield) {
+        c.strokeStyle = f.buffs.shield ? "#91c7df90" : "#e4c16d60";
+        c.lineWidth = 3;
         c.beginPath();
-        c.ellipse(x, h - 151, 45, 99, 0, 0, Math.PI * 2);
+        c.ellipse(x, y - 144, 66, 150, 0, 0, TAU2);
         c.stroke();
-        c.globalAlpha = 1;
+        glow(c, x, y - 100, 120, f.buffs.shield ? "#81bedb12" : "#e0c8770d");
+      }
+      drawCharacter(c, f, x, y, 1.54, i === 1, time, b.result || progress < 0.85 ? f.animation : "idle", f.gear);
+      if (f.buffs.burn) {
+        glow(c, x, y - 25, 65, "#e6a44c20");
+        for (let j = 0; j < 5; j++) ellipse2(c, x + Math.sin(time * 3 + j) * 28, y - 30 - (time * 30 + j * 17) % 80, 2, 3, "#e8ab65");
       }
     });
     const e = b.lastEvent;
-    if (e && progress < 1 && e.action === "spell") {
-      const from = 115 + positions[e.actor] / 10 * (w2 - 230), to = 115 + positions[1 - e.actor] / 10 * (w2 - 230), x = from + (to - from) * progress;
-      c.fillStyle = "#b8d4e8";
-      c.shadowColor = "#8ebdf8";
-      c.shadowBlur = 18;
-      c.beginPath();
-      c.arc(x, h - 152, 8, 0, Math.PI * 2);
-      c.fill();
-      c.shadowBlur = 0;
+    if (e && progress < 1) {
+      const x1 = px(positions[e.actor]), x2 = px(positions[1 - e.actor]), impact = Math.sin(Math.PI * progress);
+      if (e.action === "spell") {
+        const spell = ITEMS[e.spell], self = spell && !spell.range, flame = spell?.effect === "burn", healing = ["heal", "energy"].includes(spell?.effect);
+        const xx = self ? x1 : x1 + (x2 - x1) * Math.min(1, progress * 1.5), yy = self ? 663 : 640 - Math.sin(progress * Math.PI) * 45;
+        if (self) {
+          c.strokeStyle = healing ? "#c6df8ba0" : "#8cdddfaa";
+          c.lineWidth = 3;
+          c.beginPath();
+          c.ellipse(xx, yy + 92, 54 + impact * 20, 16, 0, 0, TAU2);
+          c.stroke();
+          for (let j = 0; j < 8; j++) {
+            const a = j * TAU2 / 8 + progress * 2;
+            ellipse2(c, xx + Math.cos(a) * 45, yy + 65 - progress * 100 + j % 3 * 12, 2, 3, healing ? "#e9efac" : "#a7e9e5");
+          }
+          glow(c, xx, yy, 100, healing ? "#abc96b25" : "#6fcfdf25");
+        } else {
+          glow(c, xx, yy, 80, flame ? "#efaf4545" : "#77d9ee45");
+          c.strokeStyle = flame ? "#f7c676" : "#a6e5e6";
+          c.lineWidth = 3;
+          c.beginPath();
+          c.moveTo(xx - (x2 > x1 ? 1 : -1) * 50, yy + 3);
+          c.lineTo(xx, yy);
+          c.stroke();
+          if (spell?.effect === "slow") polygon(c, [[xx, yy - 18], [xx + 9, yy], [xx, yy + 18], [xx - 9, yy]], "#c9fff5", "#77bccf", 2);
+          else ellipse2(c, xx, yy, 10 + impact * 3, 10, gradient(c, xx - 10, yy, xx + 10, yy, flame ? ["#fffbd3", "#ffd573", "#cf6635"] : ["#f4fff1", "#8fe8df", "#2b8faf"]));
+        }
+      }
+      if (e.action === "rapid" || e.action === "normal" || e.action === "power") {
+        c.save();
+        c.translate((x1 + x2) * 0.5, 653);
+        c.rotate(e.actor ? -0.4 : 0.4);
+        c.strokeStyle = `rgba(247,226,174,${impact * 0.7})`;
+        c.lineWidth = e.action === "power" ? 8 : 4;
+        c.beginPath();
+        c.arc(0, 0, e.action === "power" ? 84 : 61, -1.8, -0.05);
+        c.stroke();
+        c.restore();
+      }
+      if (e.damage) {
+        const tx = x2 + Math.sin(progress * 5) * 4, ty = 484 - progress * 63;
+        c.globalAlpha = Math.min(1, (1 - progress) * 2);
+        c.font = "bold 40px Georgia";
+        c.textAlign = "center";
+        c.lineWidth = 5;
+        c.strokeStyle = "#251c18";
+        c.strokeText(`−${e.damage}`, tx, ty);
+        c.fillStyle = e.damage >= 25 ? "#ffd07b" : "#fff1cf";
+        c.fillText(`−${e.damage}`, tx, ty);
+        c.globalAlpha = 1;
+        if (progress < 0.5) {
+          for (let i = 0; i < 8; i++) {
+            const a = i * TAU2 / 8, d = progress * 95;
+            line2(c, [[x2 + Math.cos(a) * d, 654 + Math.sin(a) * d], [x2 + Math.cos(a) * (d + 9), 654 + Math.sin(a) * (d + 9)]], "#f9d28290", 2);
+          }
+        }
+      }
     }
-    if (e?.damage && progress < 1) {
-      const target = 1 - e.actor, x = 115 + positions[target] / 10 * (w2 - 230);
-      c.fillStyle = "#fff0c9";
-      c.font = "bold 26px Georgia";
-      c.textAlign = "center";
-      c.globalAlpha = 1 - progress;
-      c.fillText(`−${e.damage}`, x, h - 230 - progress * 30);
-      c.globalAlpha = 1;
+    for (let i = 0; i < 27; i++) {
+      const xx = (i * 127 + time * 9) % 1600, yy = 710 + i * 13 % 157;
+      ellipse2(c, xx, yy + Math.sin(time + i) * 7, i % 4 === 0 ? 2 : 1, 1, "#f5cf9025");
     }
+    c.restore();
+  }
+  function drawMenu(canvas, b, time) {
+    drawArena(canvas, b, time, 1);
+    const c = canvas.getContext("2d"), w2 = canvas.width, h = canvas.height;
+    c.fillStyle = gradient(c, 0, 0, w2, 0, ["#081012f5", "#081012e0", "#08101230", "#08101212"]);
+    c.fillRect(0, 0, w2, h);
+    c.fillStyle = gradient(c, 0, 0, 0, h, ["#02080950", "#02080900", "#020809a0"]);
+    c.fillRect(0, 0, w2, h);
+  }
+  function drawFacility(canvas, s, stat, time) {
+    const c = canvas.getContext("2d"), [px, py] = FACILITY_POS[stat], key = `base:1600:900:${s.housing}:${Object.values(s.buildings).join(",")}`;
+    const image = cached(key, 1600, 900, (ctx) => baseBackdrop(ctx, s));
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    c.drawImage(image, px * 1600 - 155, py * 900 - 220, 330, 270, 0, 0, canvas.width, canvas.height);
+    c.fillStyle = gradient(c, 0, 0, 0, canvas.height, ["#16262310", "#16262300", "#162623cc"]);
+    c.fillRect(0, 0, canvas.width, canvas.height);
+    if (stat === "magic") glow(c, canvas.width * 0.46, canvas.height * 0.1, 38 + Math.sin(time * 2) * 4, "#98dfe521");
   }
 
   // js/ui/components.js
@@ -1596,7 +2295,7 @@
   var tag = (text, cls = "") => `<span class="tag ${cls}">${esc(text)}</span>`;
   var portrait = (g, cls = "", width = 180, height = 205) => `<canvas class="portrait ${cls}" data-character="${esc(g.id)}" width="${width}" height="${height}" aria-label="Retrato de ${esc(g.name)}"></canvas>`;
   var traits = (g) => g.traits.map((t) => tag(TRAITS[t].name)).join("");
-  var statGrid = (g, progress = false) => `<div class="stats-grid">${Object.entries(STATS).map(([key, label]) => `<div class="attribute"><span>${ICONS[key]} ${label}</span><strong>${g.stats[key]}</strong>${progress ? `<div class="meter tiny"><i style="width:${Math.min(100, g.statXP[key] / statThreshold(g.stats[key]) * 100)}%"></i></div><small>${Math.floor(g.statXP[key])} / ${statThreshold(g.stats[key])} XP</small>` : ""}</div>`).join("")}</div>`;
+  var statGrid = (g, progress = false) => `<div class="stats-grid">${Object.entries(STATS).map(([key, label]) => `<div class="attribute"><span>${glyph(key, 16)} ${label}</span><strong>${g.stats[key]}</strong>${progress ? `<div class="meter tiny"><i style="width:${Math.min(100, g.statXP[key] / statThreshold(g.stats[key]) * 100)}%"></i></div><small>${Math.floor(g.statXP[key])} / ${statThreshold(g.stats[key])} XP</small>` : ""}</div>`).join("")}</div>`;
   var empty = (title, description, action = "market", label = "Visitar el mercado") => `<div class="empty"><span class="empty-symbol">♜</span><h2>${esc(title)}</h2><p>${esc(description)}</p>${btn(label, "navigate", `data-page="${action}"`, "primary")}</div>`;
   var sectionHeading = (eyebrow, title, description = "", action = "") => `<div class="page-heading"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1>${description ? `<p class="lead">${description}</p>` : ""}</div>${action}</div>`;
   function selectGladiator(s, ui2, label = "Gladiador seleccionado") {
@@ -1604,11 +2303,11 @@
   }
   var status = (g) => g.recovery ? `Recuperación · ${g.recovery} d` : g.training ? `Entrena ${STATS[g.training].toLowerCase()}` : g.health < 0.65 || g.condition < 60 ? "Necesita descanso" : "Disponible";
   var requirements = (g, item) => Object.entries(item.requirements).map(([k, n]) => `<span class="requirement ${g ? g.stats[k] < n ? "unmet" : "met" : ""}">${STATS[k]} ${n}${g ? ` / ${g.stats[k]}` : ""}</span>`).join("") || '<span class="requirement">Sin requisitos</span>';
-  var itemSymbol = (item) => item.category === "scroll" ? "✦" : item.category === "weapon" ? { sword: "⚔", dagger: "†", spear: "↟", staff: "⚚", axe: "⚒", mace: "⚒", bow: "➶", crossbow: "➶" }[item.type] || "⚔" : { head: "♜", chest: "⛨", hands: "⋈", feet: "♧", offhand: "⛨", accessory: "◇" }[item.slot];
+  var itemSymbol = (item) => itemArt(item);
   function itemDetails(item) {
     return item.category === "weapon" ? `${item.damage} daño · alcance ${item.minRange}–${item.range}<br>${item.energy} energía · velocidad ${item.speed}${item.twoHanded ? " · dos manos" : ""}${item.effect === "pierce" ? "<br>Penetra parte de la armadura" : ""}` : item.category === "scroll" ? `${item.mana} maná · alcance ${item.range || "propio"} · recarga ${item.cooldown} t<br>${esc(item.description)}` : `${item.protection} protección · ${item.weight} peso<br>${SLOTS[item.slot]}${item.weight ? " · +" + Math.round(item.weight * 2.5) + " % coste de energía" : ""}`;
   }
-  var gold = (n) => `<span class="coin">◉</span> ${money(n)}`;
+  var gold = (n) => `<span class="coin">${glyph("gold", 17)}</span> ${money(n)}`;
   var progressBar = (label, value, max, cls = "") => `<div class="resource ${cls}"><div><span>${label}</span><strong>${Math.ceil(value)} / ${max}</strong></div><div class="meter"><i style="width:${Math.max(0, Math.min(100, value / max * 100))}%"></i></div></div>`;
   var weaponTypeName = (type) => ({ sword: "Espada", dagger: "Daga", axe: "Hacha", mace: "Maza", spear: "Lanza", staff: "Bastón", bow: "Arco", crossbow: "Ballesta", fist: "Puños" })[type] || "Arma";
 
@@ -1616,17 +2315,17 @@
   var NAV = [["base", "⌂", "La base"], ["gladiators", "♟", "Gladiadores"], ["market", "⚖", "Mercado"], ["training", "⚒", "Entrenamiento"], ["shops", "◇", "Tiendas"], ["inventory", "▣", "Inventario"], ["arena", "⚔", "Arena"], ["tournaments", "♜", "Torneos"], ["history", "≡", "Historial"]];
   function shell(s, ui2, content) {
     const year = 1 + Math.floor((s.day - 1) / 360), day = (s.day - 1) % 360 + 1;
-    return `<aside class="sidebar"><a class="brand" href="#base" data-action="navigate" data-page="base">${crest}<span>CASA DE<br><b>CENIZA</b><small>CRÓNICAS DE LA ARENA</small></span></a><div class="house-label"><i></i> UNA CASA. MUCHAS HISTORIAS.</div><nav aria-label="Navegación principal">${NAV.map(([id2, icon, label]) => `<button class="nav-item ${ui2.page === id2 ? "active" : ""}" data-action="navigate" data-page="${id2}"><span>${icon}</span>${label}${id2 === "gladiators" ? `<small>${s.gladiators.length}</small>` : id2 === "arena" && s.battle && !s.battle.result ? '<small class="live">●</small>' : ""}</button>`).join("")}</nav><div class="sidebar-bottom"><button class="nav-item" data-action="save"><span>▣</span>Guardar partida</button><button class="nav-item ${ui2.page === "options" ? "active" : ""}" data-action="navigate" data-page="options"><span>⚙</span>Opciones y ayuda</button><div class="save-caption" id="save-caption">${ui2.saveError ? "Guardado pendiente" : "Guardado automático activo"}</div></div></aside><div class="game-shell"><header class="topbar"><div class="calendar"><span class="sun">☀</span><div>Día ${day}<small>AÑO ${year} · JORNADA ${s.day}</small></div></div><div class="top-resources"><div><span class="coin">◉</span><strong>${money(s.gold)}</strong><small>ORO</small></div><div><span class="fame-icon">✦</span><strong>${s.prestige}</strong><small>PRESTIGIO</small></div><div><span>♟</span><strong>${s.gladiators.length}<em> / ${RULES.capacity[s.housing]}</em></strong><small>ALOJAMIENTO</small></div></div>${btn("Avanzar día <span>→</span>", "day", "", "primary next-day")}</header>${ui2.saveError ? `<div class="warning">${esc(ui2.saveError)}</div>` : ""}<main id="main-content">${content}</main><footer>CASA DE CENIZA <span>Tu legado se forja en la arena.</span><small>PARTIDA LOCAL · SIN CONEXIÓN EXTERNA</small></footer></div>`;
+    return `<div class="game-shell"><header class="topbar"><a class="brand" href="#base" data-action="navigate" data-page="base">${crest}<span>CASA DE <b>CENIZA</b><small>SEÑOR DEL LUDUS</small></span></a><div class="calendar"><span class="sun">${glyph("sun", 24)}</span><div>Día ${day}<small>AÑO ${year}</small></div></div><div class="top-resources"><div><span class="coin">${glyph("gold", 25)}</span><strong>${money(s.gold)}</strong><small>ORO</small></div><div><span class="fame-icon">${glyph("tournaments", 24)}</span><strong>${s.prestige}</strong><small>PRESTIGIO</small></div><div><span>${glyph("gladiators", 24)}</span><strong>${s.gladiators.length}<em> / ${RULES.capacity[s.housing]}</em></strong><small>GLADIADORES</small></div></div>${btn("Avanzar día <span>»</span>", "day", "", "primary next-day")}</header>${ui2.saveError ? `<div class="warning">${esc(ui2.saveError)}</div>` : ""}<main id="main-content" class="screen-${ui2.page}">${content}</main><aside class="sidebar"><nav aria-label="Navegación principal">${NAV.map(([id2, icon, label]) => `<button class="nav-item ${ui2.page === id2 ? "active" : ""}" data-action="navigate" data-page="${id2}"><span>${glyph(id2, 26)}</span><b>${label}</b>${id2 === "gladiators" && s.gladiators.length ? `<small>${s.gladiators.length}</small>` : id2 === "arena" && s.battle && !s.battle.result ? '<small class="live">●</small>' : ""}</button>`).join("")}</nav><div class="sidebar-bottom"><button class="utility-button" data-action="save" title="Guardar partida" aria-label="Guardar partida">${glyph("save", 21)}</button><button class="utility-button ${ui2.page === "options" ? "active" : ""}" data-action="navigate" data-page="options" title="Opciones y ayuda" aria-label="Opciones y ayuda">${glyph("options", 21)}</button><button class="utility-button" data-action="fullscreen" title="Pantalla completa" aria-label="Pantalla completa">${glyph("fullscreen", 21)}</button></div></aside></div>`;
   }
   function menu(s, ui2) {
-    return `<main class="main-menu"><canvas id="menu-canvas" width="1280" height="620" aria-hidden="true"></canvas><div class="menu-shade"></div><div class="menu-content">${crest}<p class="eyebrow">CRÓNICAS DE LA ARENA</p><h1>CASA DE<br><span>CENIZA</span></h1><div class="ornament">—— ✦ ——</div><p>No luchas por la gloria.<br>Construyes la casa de quienes lo harán.</p><div class="menu-actions">${btn("Continuar partida", "continue", s ? "" : "disabled", "primary")}${btn("Nueva partida", "new-game", "", "light")}${btn("Opciones y ayuda", "menu-options")}</div>${ui2.menuOptions ? `<div class="menu-options"><p>Juego local, sin cuentas ni conexión. Se guarda automáticamente en este navegador. El sonido se activa dentro de la partida.</p>${btn("Importar partida", "import")}${btn("Cerrar ayuda", "menu-options")}</div>` : ""}${ui2.loadError ? `<div class="warning">${esc(ui2.loadError)}</div>` : ""}<small>GESTIÓN DE GLADIADORES · COMBATES TÁCTICOS · HISTORIAS PROPIAS</small></div></main>`;
+    return `<main class="main-menu"><canvas id="menu-canvas" width="1600" height="900" aria-hidden="true"></canvas><div class="menu-vignette"></div><div class="menu-content"><div class="menu-kicker"><span></span> CRÓNICAS DE LA ARENA <span></span></div>${crest}<h1>CASA DE<br><span>CENIZA</span></h1><div class="ornament">◆</div><p>De las cenizas de un condenado,<br>puede nacer una leyenda.</p><div class="menu-actions">${btn('Continuar partida <span aria-hidden="true">»</span>', "continue", s ? 'aria-label="Continuar partida"' : 'aria-label="Continuar partida" disabled', "primary")}${btn('Nueva partida <span aria-hidden="true">»</span>', "new-game", 'aria-label="Nueva partida"', "light")}${btn("Opciones y ayuda", "menu-options", "", "text-button")}</div>${ui2.menuOptions ? `<div class="menu-options"><h3>Tu casa. Tu historia.</h3><p>Compra contratos, entrena y equipa a tus gladiadores. Ellos luchan con su propia IA. La partida se guarda en este navegador.</p>${btn("Importar partida", "import")}${btn("Volver", "menu-options")}</div>` : ""}${ui2.loadError ? `<div class="warning">${esc(ui2.loadError)}</div>` : ""}<small>UN JUEGO DE GESTIÓN Y COMBATE TÁCTICO</small></div><div class="menu-world-caption"><span>EL COLISEO DEL ÚLTIMO SOL</span><p>La gloria no se hereda. Se forja.</p></div></main>`;
   }
   function baseScreen(s, ui2) {
     const ready = s.gladiators.filter((g) => !g.recovery && g.health >= 0.65 && g.condition >= 60).length;
-    return `${sectionHeading("TU HISTORIA EMPIEZA AQUÍ", "El hogar de tu legado", "Una humilde casa hoy. Un nombre que la arena recordará mañana.", tag("BASE · NIVEL " + s.housing, "gold"))}<div class="dashboard-grid"><section class="panel base-panel"><div class="panel-heading"><h2>Patio de la Casa de Ceniza</h2><span class="muted">${s.gladiators.filter((g) => g.training).length} entrenando · ${s.gladiators.filter((g) => g.recovery).length} en recuperación</span></div><div class="base-map"><canvas id="base-canvas" width="1120" height="520" aria-label="Base administrable con ocho instalaciones y gladiadores animados"></canvas><span class="map-house">ALOJAMIENTO · NIVEL ${s.housing}</span>${Object.entries(FACILITY_POS).map(([key, [x, y]]) => `<button class="map-label" style="left:${x * 100}%;top:${y * 100 + 8}%" data-action="facility" data-stat="${key}">${ICONS[key]} ${STATS[key]} <small>${s.buildings[key]}</small></button>`).join("")}<div class="map-center"><strong>CASA DE CENIZA</strong><small>PATIO DE ENTRENAMIENTO</small></div></div><div class="map-bottom"><span><i class="status-dot"></i> ${ready} gladiadores preparados</span>${btn("Gestionar instalaciones →", "navigate", 'data-page="training"', "text-button")}</div></section><aside class="dashboard-side"><section class="panel next-step"><p class="eyebrow">EL SIGUIENTE PASO</p><span class="large-symbol">${!s.gladiators.length ? "⚖" : "⚔"}</span><h2>${!s.gladiators.length ? "Toda leyenda empieza con una oportunidad." : "La arena espera a tu casa."}</h2><p>${!s.gladiators.length ? "Hay cuatro contratos en el mercado. Descubre su pasado y elige a tu primer gladiador." : "Entrena con intención. Equipa con criterio. Cada personalidad encuentra su forma de vencer."}</p>${btn(!s.gladiators.length ? "Explorar el mercado →" : "Preparar un duelo →", "navigate", `data-page="${!s.gladiators.length ? "market" : "arena"}"`, "primary")}</section><section class="panel housing"><div class="panel-heading"><h3>Alojamiento</h3>${tag(`${s.gladiators.length}/${RULES.capacity[s.housing]}`)}</div><p>Una cama, una nueva historia.</p><div class="bed-slots">${Array.from({ length: RULES.capacity[s.housing] }, (_, i) => `<i class="${i < s.gladiators.length ? "occupied" : ""}">♟</i>`).join("")}</div>${s.housing < 5 ? btn(`Ampliar · ${gold(RULES.housingCost[s.housing])}`, "upgrade", 'data-stat="housing"', "wide") : tag("Capacidad máxima")}</section></aside></div><div class="section-row"><h2>Los tuyos <span class="count">${s.gladiators.length}</span></h2>${btn("Ver todos →", "navigate", 'data-page="gladiators"', "text-button")}</div>${s.gladiators.length ? `<div class="roster-strip">${s.gladiators.slice(0, 4).map((g) => `<button class="mini-gladiator" data-action="profile" data-id="${esc(g.id)}">${portrait(g, "", 90, 112)}<div><small>NIVEL ${g.level} · ${esc(BACKGROUNDS.find((b) => b.id === g.background).name)}</small><h3>${esc(g.name)}</h3><p><i class="status-dot ${g.recovery ? "amber" : ""}"></i> ${status(g)}</p></div><span>→</span></button>`).join("")}</div>` : `<div class="empty-roster"><span>♟</span><div><h3>Un patio en silencio. Por ahora.</h3><p>Adquiere tu primer contrato para dar vida a la casa.</p></div>${btn("Buscar un gladiador", "navigate", 'data-page="market"')}</div>`}<section class="recent-events"><div class="section-row"><h2>Crónicas de la casa</h2>${btn("Historial →", "navigate", 'data-page="history"', "text-button")}</div>${s.history.slice(0, 3).map((e) => `<div class="event-row"><span>DÍA ${e.day}</span><p>${esc(e.text)}</p></div>`).join("")}</section>`;
+    return `<div class="base-layout"><section class="base-world"><canvas id="base-canvas" width="1600" height="900" aria-label="Campamento medieval ilustrado con ocho instalaciones de entrenamiento"></canvas><div class="world-title"><p class="eyebrow">EL LUDUS · NIVEL ${s.housing}</p><h1>Casa de Ceniza</h1><span>${ready} preparados <i>◆</i> ${s.gladiators.filter((g) => g.training).length} entrenando <i>◆</i> ${s.gladiators.filter((g) => g.recovery).length} descansando</span></div><div class="world-housing"><span>${glyph("base", 23)}</span><div><small>ALOJAMIENTO</small><strong>${s.gladiators.length} / ${RULES.capacity[s.housing]} plazas</strong></div>${s.housing < 5 ? btn(`Ampliar · ${gold(RULES.housingCost[s.housing])}`, "upgrade", 'data-stat="housing"') : tag("NIVEL MÁXIMO")}</div><div class="base-hotspots">${Object.entries(FACILITY_POS).map(([key, [x, y]]) => `<button class="map-label" style="left:${x * 100}%;top:${y * 100 + 6.5}%" data-action="facility" data-stat="${key}" aria-label="${BUILDINGS[key]}, nivel ${s.buildings[key]}"><span>${glyph(key, 17)}</span><b>${STATS[key]}</b><small>${s.buildings[key]}</small></button>`).join("")}</div><div class="world-quest"><div class="quest-seal">${glyph(!s.gladiators.length ? "market" : "arena", 29)}</div><div><p class="eyebrow">${!s.gladiators.length ? "EL PRIMER CONTRATO" : "LA ARENA TE ESPERA"}</p><h3>${!s.gladiators.length ? "Toda casa necesita un campeón." : "Es hora de ponerlos a prueba."}</h3>${btn(!s.gladiators.length ? "Ir al mercado »" : "Preparar un duelo »", "navigate", `data-page="${!s.gladiators.length ? "market" : "arena"}"`, "primary")}</div></div><div class="world-caption"><span>MARCA DEL ÁMBAR</span><small>Territorio de tu casa</small></div></section><section class="base-roster"><div class="roster-title"><span>${glyph("gladiators", 26)}</span><div><small>BAJO TU ESTANDARTE</small><h2>Tus gladiadores</h2></div>${btn("Ver todos »", "navigate", 'data-page="gladiators"', "text-button")}</div>${s.gladiators.length ? `<div class="roster-strip">${s.gladiators.slice(0, 4).map((g) => `<button class="mini-gladiator" data-action="profile" data-id="${esc(g.id)}">${portrait(g, "", 100, 130)}<div><small>NIVEL ${g.level}</small><h3>${esc(g.name)}</h3><p><i class="status-dot ${g.recovery ? "amber" : ""}"></i>${status(g)}</p></div><span>›</span></button>`).join("")}</div>` : `<div class="empty-roster"><p>Las puertas están abiertas.<br><strong>Tu primera leyenda espera en el mercado.</strong></p>${btn("Adquirir un contrato »", "navigate", 'data-page="market"')}</div>`}</section><div class="world-journal"><span>${glyph("history", 16)} DÍA ${s.history[0].day}</span><p>${esc(s.history[0].text)}</p>${btn("Crónicas »", "navigate", 'data-page="history"', "text-button")}</div></div>`;
   }
   function marketScreen(s) {
-    return `${sectionHeading("UNA SEGUNDA OPORTUNIDAD", "Mercado de Condenados", "No eliges su pasado. Tú decides lo que viene después.", tag("NUEVOS CONTRATOS CADA 3 DÍAS"))}<div class="notice"><span>⚖</span><p>Todos los aspirantes son adultos. El potencial es una estimación incierta; el precio refleja su capacidad actual, estado y demanda.</p><strong>${s.gladiators.length}/${RULES.capacity[s.housing]} plazas</strong></div><div class="market-grid">${s.market.map((g, i) => `<article class="panel market-card"><div class="card-ribbon"><span>CONTRATO ${String(i + 1).padStart(2, "0")}</span>${tag("Nivel " + g.level)}</div><div class="market-portrait">${portrait(g)}<span class="portrait-caption">${esc(g.region)}</span></div><div class="market-info"><p class="eyebrow">${esc(BACKGROUNDS.find((b) => b.id === g.background).name)}</p><h2>${esc(g.name)}</h2><p class="muted">${g.age} años · Estado físico ${g.condition} %</p><div class="trait-row">${traits(g)}</div><details><summary>Condena e historia</summary><p><b>${esc(g.crime)}.</b> ${esc(g.story)}</p></details>${statGrid(g)}<div class="talent"><span>✦</span><div><strong>${ABILITIES[g.ability].name}</strong><small>${ABILITIES[g.ability].description}</small></div></div><div class="market-potential"><span>Potencial <b>${g.potentialEstimate}</b></span><span>Experiencia previa <b>${g.tactical > 0.4 ? "Experimentado" : "Aprendiz"}</b></span></div><div class="purchase-row"><strong>${gold(g.price)}</strong>${btn("Adquirir contrato", "buy-gladiator", `data-id="${g.id}"`, "primary")}</div></div></article>`).join("")}</div>${!s.market.length ? empty("Todos los contratos tienen casa", "Avanza hasta la siguiente llegada de condenados.", "base", "Volver a la base") : ""}`;
+    return `${sectionHeading("UNA SEGUNDA OPORTUNIDAD", "Mercado de Condenados", "No eliges su pasado. Tú decides lo que viene después.", tag("NUEVOS CONTRATOS CADA 3 DÍAS"))}<div class="notice"><span>${glyph("market", 26)}</span><p>Todos los aspirantes son adultos. El potencial es una estimación incierta; el precio refleja su capacidad actual, estado y demanda.</p><strong>${s.gladiators.length}/${RULES.capacity[s.housing]} plazas</strong></div><div class="market-grid">${s.market.map((g, i) => `<article class="panel market-card"><div class="card-ribbon"><span>CONTRATO ${String(i + 1).padStart(2, "0")}</span>${tag("Nivel " + g.level)}</div><div class="market-portrait">${portrait(g)}<span class="portrait-caption">${esc(g.region)}</span></div><div class="market-info"><p class="eyebrow">${esc(BACKGROUNDS.find((b) => b.id === g.background).name)}</p><h2>${esc(g.name)}</h2><p class="muted">${g.age} años · Estado físico ${g.condition} %</p><div class="trait-row">${traits(g)}</div><details><summary>Condena e historia</summary><p><b>${esc(g.crime)}.</b> ${esc(g.story)}</p></details>${statGrid(g)}<div class="talent"><span>✦</span><div><strong>${ABILITIES[g.ability].name}</strong><small>${ABILITIES[g.ability].description}</small></div></div><div class="market-potential"><span>Potencial <b>${g.potentialEstimate}</b></span><span>Experiencia previa <b>${g.tactical > 0.4 ? "Experimentado" : "Aprendiz"}</b></span></div><div class="purchase-row"><strong>${gold(g.price)}</strong>${btn("Adquirir contrato", "buy-gladiator", `data-id="${g.id}"`, "primary")}</div></div></article>`).join("")}</div>${!s.market.length ? empty("Todos los contratos tienen casa", "Avanza hasta la siguiente llegada de condenados.", "base", "Volver a la base") : ""}`;
   }
   function gladiatorScreen(s, ui2) {
     if (!s.gladiators.length) return sectionHeading("PERSONAS, NO PIEZAS", "Tus gladiadores") + empty("Tu casa aún no tiene gladiadores", "Visita el mercado y conoce a quienes escribirán tu historia.");
@@ -1639,30 +2338,30 @@
   }
   function trainingScreen(s, ui2) {
     const g = s.gladiators.find((g2) => g2.id === ui2.selected);
-    return `${sectionHeading("LA GLORIA SE TRABAJA", "El patio de entrenamiento", "Un atributo a la vez. Sin esperas reales: tú decides cuándo avanza el día.")}${selectGladiator(s, ui2)}${g ? `<div class="notice"><span>♟</span><p><strong>${esc(g.name)}</strong> · ${status(g)}. La recuperación reduce el rendimiento; cada día restaura salud y estado físico.</p>${btn("Descansar", "assign", 'data-stat=""')}</div>` : empty("El patio está preparado", "Adquiere un gladiador para comenzar su entrenamiento.")}<div class="training-grid">${Object.entries(BUILDINGS).map(([key, label]) => {
+    return `${sectionHeading("LA GLORIA SE TRABAJA", "El patio de entrenamiento", "Un atributo a la vez. Sin esperas reales: tú decides cuándo avanza el día.")}${selectGladiator(s, ui2)}${g ? `<div class="notice"><span>${glyph("gladiators", 26)}</span><p><strong>${esc(g.name)}</strong> · ${status(g)}. La recuperación reduce el rendimiento; cada día restaura salud y estado físico.</p>${btn("Descansar", "assign", 'data-stat=""')}</div>` : empty("El patio está preparado", "Adquiere un gladiador para comenzar su entrenamiento.")}<div class="training-grid">${Object.entries(BUILDINGS).map(([key, label]) => {
       const level = s.buildings[key], trainees = s.gladiators.filter((g2) => g2.training === key);
-      return `<section class="panel training-card ${ui2.facility === key ? "focused" : ""}"><div class="panel-heading"><span class="building-symbol">${ICONS[key]}</span>${tag("NIVEL " + level + " / 5")}</div><h2>${label}</h2><p class="muted">${STATS[key]} · ${RULES.trainingXP[level]} XP base / día</p><div class="level-pips">${Array.from({ length: 5 }, (_, i) => `<i class="${i < level ? "filled" : ""}"></i>`).join("")}</div><div class="training-occupants">${trainees.map((t) => `<div>${portrait(t, "", 72, 90)}<span>${esc(t.name)}<small>${trainingGain(t, key, level, () => 0.5)} XP/día estimados</small></span></div>`).join("") || "<p>Puesto libre · esperando talento</p>"}</div><div class="details-row"><span>Capacidad <b>${trainees.length}/${RULES.trainingSlots[level]}</b></span>${g ? `<span>Estimación <b>+${trainingGain(g, key, level, () => 0.5)} XP/día</b></span>` : ""}</div><div class="card-actions">${btn(g?.training === key ? "Asignado ✓" : "Asignar", "assign", `data-stat="${key}" ${!g ? "disabled" : ""}`, g?.training === key ? "selected" : "primary")}${level < 5 ? btn(`Mejorar · ${gold(RULES.upgradeCost[level])}`, "upgrade", `data-stat="${key}"`) : tag("NIVEL MÁXIMO")}</div></section>`;
+      return `<section class="panel training-card ${ui2.facility === key ? "focused" : ""}"><div class="panel-heading"><span class="building-symbol">${glyph(key, 30)}</span>${tag("NIVEL " + level + " / 5")}</div><h2>${label}</h2><p class="muted">${STATS[key]} · ${RULES.trainingXP[level]} XP base / día</p><canvas class="building-art" data-building="${key}" width="440" height="245" aria-hidden="true"></canvas><div class="level-pips">${Array.from({ length: 5 }, (_, i) => `<i class="${i < level ? "filled" : ""}"></i>`).join("")}</div><div class="training-occupants">${trainees.map((t) => `<div>${portrait(t, "", 72, 90)}<span>${esc(t.name)}<small>${trainingGain(t, key, level, () => 0.5)} XP/día estimados</small></span></div>`).join("") || "<p>Puesto libre · esperando talento</p>"}</div><div class="details-row"><span>Capacidad <b>${trainees.length}/${RULES.trainingSlots[level]}</b></span>${g ? `<span>Estimación <b>+${trainingGain(g, key, level, () => 0.5)} XP/día</b></span>` : ""}</div><div class="card-actions">${btn(g?.training === key ? "Asignado ✓" : "Asignar", "assign", `data-stat="${key}" ${!g ? "disabled" : ""}`, g?.training === key ? "selected" : "primary")}${level < 5 ? btn(`Mejorar · ${gold(RULES.upgradeCost[level])}`, "upgrade", `data-stat="${key}"`) : tag("NIVEL MÁXIMO")}</div></section>`;
     }).join("")}</div><p class="footnote">La experiencia depende del potencial real, talento natural, personalidad y estado. El gasto diario es de 2 monedas por gladiador; no se genera deuda.</p>`;
   }
   function shopScreen(s, ui2) {
     const category = ui2.shopCategory || "weapon", items = category === "weapon" ? WEAPONS : category === "armor" ? [...ARMORS, ...ACCESSORIES] : SPELLS;
-    const g = s.gladiators.find((g2) => g2.id === ui2.selected);
-    return `${sectionHeading("HERRAMIENTAS PARA EL DESTINO", "Los gremios del mercado", "El equipo se compra para la casa. Cada unidad solo puede tener un portador.", s.shopDiscount ? tag("FERIA · −15 %", "gold") : "")}<div class="toolbar"><div class="tabs">${[["weapon", "⚔ Armas"], ["armor", "⛨ Armaduras"], ["scroll", "✦ Pergaminos"]].map(([id2, label]) => btn(label, "shop-tab", `data-category="${id2}"`, category === id2 ? "selected" : "")).join("")}</div>${selectGladiator(s, ui2, "Comparar requisitos con")}</div><p class="muted">Puedes comprar equipo para más adelante. Los requisitos se comprueban al equiparlo o aprenderlo.</p><div class="items-grid">${items.map((item) => `<article class="panel item-card"><div class="item-top"><div class="item-icon ${category}">${itemSymbol(item)}</div><span>${item.category === "weapon" ? esc(weaponTypeName(item.type).toUpperCase()) : item.category === "scroll" ? "PERGAMINO" : SLOTS[item.slot].toUpperCase()}</span></div><h3>${item.name}</h3><p class="item-details">${itemDetails(item)}</p><div class="requirements">${requirements(g, item)}</div><div class="purchase-row"><strong>${gold(itemPrice(s, item))}</strong>${btn("Comprar", "buy-item", `data-id="${item.id}"`, "primary")}</div></article>`).join("")}</div>`;
+    const g = s.gladiators.find((g2) => g2.id === ui2.selected), item = items.find((i) => i.id === ui2.shopItem) || items[0];
+    return `${sectionHeading("HIERRO, CUERO Y PODER ARCANO", "Los gremios del mercado", "Elige una pieza del expositor para examinarla.", s.shopDiscount ? tag("FERIA · −15 %", "gold") : "")}<div class="shop-layout"><section class="forge-corner"><svg class="forge-art" viewBox="0 0 320 510" aria-hidden="true"><defs><linearGradient id="forgeWall" x2="1" y2="1"><stop stop-color="#605b46"/><stop offset="1" stop-color="#1c302d"/></linearGradient><radialGradient id="forgeFire"><stop stop-color="#ffe9a4"/><stop offset=".35" stop-color="#e9a94d"/><stop offset="1" stop-color="#6c3a2466"/></radialGradient><linearGradient id="forgeAnvil" x2="0" y2="1"><stop stop-color="#c0c8aa"/><stop offset=".3" stop-color="#80948a"/><stop offset="1" stop-color="#344e4c"/></linearGradient><pattern id="forgeBrick" width="72" height="45" patternUnits="userSpaceOnUse"><path d="M0 0h72v45H0Zm0 23h72M36 0v23M16 23v22" fill="none" stroke="#151d1a" opacity=".45"/></pattern></defs><path fill="url(#forgeWall)" d="M0 0h320v510H0z"/><path fill="url(#forgeBrick)" d="M0 0h320v510H0z"/><path d="M19 325V181a119 119 0 0 1 238 0v144Z" fill="#111b19" stroke="#7f7654" stroke-width="18"/><path d="M42 318V185a96 96 0 0 1 192 0v133Z" fill="url(#forgeFire)"/><path d="m70 318-6-46 26-42-9 42 36-92 22 63 33-41-4 61 35-27-7 82Z" fill="#eaa24a"/><path d="m92 318 15-45 5-41 19 48 21-25-4 36 30-11-8 38Z" fill="#ffe49a"/><path d="M25 328h225v21H25z" fill="#8c8159" stroke="#2a3025" stroke-width="4"/><path d="M250 30v213m-13-212h27M235 239h31" stroke="#917b4e" stroke-width="8"/><path d="m264 83-4-55 12-22 10 20-7 57Z" fill="#aab9b1" stroke="#263c3c" stroke-width="3"/><path d="M253 83h32" stroke="#bc9e59" stroke-width="5"/><path d="M14 353 320 333v177H0Z" fill="#384132"/><ellipse cx="153" cy="453" rx="123" ry="20" fill="#0a1717aa"/><path d="m48 384 144 2 58-31-8 38-38 17-19 15 12 28H72l20-28-7-25H44Z" fill="url(#forgeAnvil)" stroke="#233936" stroke-width="4"/><path d="m48 384 144 2 58-31-38-9-30 23H49Z" fill="#a6b7a5" stroke="#314a44" stroke-width="2"/><path d="m88 378 16-38m-23 3 34-9 8 16-35 9Z" fill="#5f4631" stroke="#b8a46e" stroke-width="3"/><path d="m22 461 268-13m-268 25 268-13" stroke="#69704a" stroke-width="2"/><g fill="#eccc76"><circle cx="114" cy="137" r="2"/><circle cx="181" cy="156" r="1.4"/><circle cx="149" cy="109" r="1.5"/></g></svg><div class="forge-caption"><span>GREMIO DE LA FORJA</span><h2>Acero para<br>una nueva leyenda.</h2><small>Cada arma encuentra su mano.</small></div></section><section class="shop-stock"><div class="tabs">${[["weapon", "Armas"], ["armor", "Armaduras"], ["scroll", "Pergaminos"]].map(([id2, label]) => btn(label, "shop-tab", `data-category="${id2}"`, category === id2 ? "selected" : "")).join("")}</div><div class="stock-heading"><span>${items.length} PIEZAS DISPONIBLES</span><small>Selecciona para examinar</small></div><div class="stock-grid">${items.map((i) => `<button class="stock-slot ${i.id === item.id ? "selected" : ""} ${i.price > 400 ? "rare" : ""}" data-action="shop-select" data-id="${i.id}" title="${esc(i.name)}" aria-label="Examinar ${esc(i.name)}">${itemSymbol(i)}<span>${gold(itemPrice(s, i))}</span></button>`).join("")}</div><p class="stock-help">Puedes adquirir equipo para más adelante. Los requisitos se comprueban al equiparlo.</p></section><aside class="panel item-inspect"><p class="eyebrow">${item.category === "weapon" ? weaponTypeName(item.type) : item.category === "scroll" ? "PERGAMINO ARCANO" : SLOTS[item.slot]}</p><div class="inspect-art">${itemSymbol(item)}</div><h2>${item.name}</h2><p class="item-details">${itemDetails(item)}</p><div class="inspect-compare">${selectGladiator(s, ui2, "Comprobar requisitos con")}<div class="requirements">${requirements(g, item)}</div></div><div class="purchase-row"><strong>${gold(itemPrice(s, item))}</strong>${btn("Comprar", "buy-item", `data-id="${item.id}"`, "primary")}</div><small class="inspect-note">Se guardará como una unidad única en el almacén de la casa.</small></aside></div>`;
   }
   function inventoryScreen(s, ui2) {
-    const g = s.gladiators.find((g2) => g2.id === ui2.selected);
-    return `${sectionHeading("CADA PIEZA TIENE UN DUEÑO", "Almacén de la casa", `${s.inventory.length} unidades en propiedad. Los objetos equipados permanecen identificados en el almacén.`)}${selectGladiator(s, ui2, "Equipar o enseñar a")}${g ? `<section class="panel equipment-panel">${portrait(g, "", 120, 145)}<div><h2>${esc(g.name)}</h2><div class="equipment-slots">${Object.entries(SLOTS).map(([slot, label]) => {
-      const unit = s.inventory.find((u) => u.id === g.equipment[slot]), item = ITEMS[unit?.itemId];
-      return `<div><small>${label}</small><strong>${item ? esc(item.name) : "Vacío"}</strong>${item ? btn("Retirar", "unequip", `data-slot="${slot}"`, "text-button") : ""}</div>`;
-    }).join("")}</div></div></section>` : ""}${s.inventory.length ? `<div class="items-grid">${s.inventory.map((unit) => {
-      const item = ITEMS[unit.itemId], owner = itemOwner(s, unit.id);
-      return `<article class="panel item-card"><div class="item-top"><span class="item-icon">${itemSymbol(item)}</span>${tag(owner ? "Equipado" : "Disponible", owner ? "gold" : "")}</div><h3>${item.name}</h3><p class="item-details">${itemDetails(item)}</p><div class="requirements">${requirements(g, item)}</div>${owner ? `<p class="muted">Portador: ${esc(owner.name)}</p>` : ""}<div class="card-actions">${btn(item.category === "scroll" ? "Aprender" : owner?.id === g?.id ? "Equipado ✓" : "Equipar", item.category === "scroll" ? "learn" : "equip", `data-id="${unit.id}" ${!g || owner?.id === g?.id ? "disabled" : ""}`, "primary")}${btn(`Vender · ${gold(Math.floor(item.price * 0.45))}`, "sell", `data-id="${unit.id}" ${owner ? "disabled" : ""}`)}</div></article>`;
-    }).join("")}</div>` : empty("Un almacén por llenar", "Compra armas, protección y pergaminos en los gremios.", "shops", "Visitar las tiendas")}`;
+    const g = s.gladiators.find((g2) => g2.id === ui2.selected), unit = s.inventory.find((u) => u.id === ui2.inventoryUnit) || s.inventory.find((u) => !itemOwner(s, u.id)) || s.inventory[0], item = ITEMS[unit?.itemId], owner = unit ? itemOwner(s, unit.id) : null;
+    return `${sectionHeading("EL ARSENAL DE TU CASA", "Inventario", `${s.inventory.length} piezas en propiedad. Cada unidad tiene un único portador.`)}${selectGladiator(s, ui2, "Equipar o enseñar a")}${g ? `<section class="panel equipment-panel"><div class="equipment-character">${portrait(g, "", 210, 290)}<span>NIVEL ${g.level}</span></div><div><p class="eyebrow">PORTADOR SELECCIONADO</p><h2>${esc(g.name)}</h2><div class="equipment-slots">${Object.entries(SLOTS).map(([slot, label]) => {
+      const u = s.inventory.find((u2) => u2.id === g.equipment[slot]), i = ITEMS[u?.itemId];
+      return `<div class="gear-slot"><span>${i ? itemSymbol(i) : glyph(slot === "weapon" ? "arena" : slot === "offhand" ? "defense" : slot === "accessory" ? "magic" : "inventory", 22)}</span><div><small>${label}</small><strong>${i ? esc(i.name) : "Vacío"}</strong>${i ? btn("Retirar", "unequip", `data-slot="${slot}"`, "text-button") : ""}</div></div>`;
+    }).join("")}</div></div></section>` : ""}${s.inventory.length ? `<div class="stash-layout"><section class="panel stash-bag"><div class="panel-heading"><h2>Almacén de la casa</h2>${tag(s.inventory.length + " UNIDADES")}</div><div class="stock-grid">${s.inventory.map((u) => {
+      const i = ITEMS[u.itemId], o = itemOwner(s, u.id);
+      return `<button class="stock-slot ${u.id === unit.id ? "selected" : ""} ${i.price > 400 ? "rare" : ""}" data-action="inventory-select" data-id="${u.id}" title="${esc(i.name)}${o ? " · " + esc(o.name) : ""}" aria-label="Examinar ${esc(i.name)}">${itemSymbol(i)}<span>${o ? "EQUIPADO" : i.category === "scroll" ? "PERGAMINO" : "DISPONIBLE"}</span></button>`;
+    }).join("")}</div></section><aside class="panel item-inspect"><p class="eyebrow">${owner ? "EQUIPADO POR " + esc(owner.name) : "DISPONIBLE EN EL ALMACÉN"}</p><div class="inspect-art">${itemSymbol(item)}</div><h2>${item.name}</h2><p class="item-details">${itemDetails(item)}</p><div class="requirements">${requirements(g, item)}</div><div class="card-actions">${btn(item.category === "scroll" ? "Aprender hechizo" : owner?.id === g?.id ? "Equipado ✓" : "Equipar", item.category === "scroll" ? "learn" : "equip", `data-id="${unit.id}" ${!g || owner?.id === g?.id ? "disabled" : ""}`, "primary wide")}${btn(`Vender · ${gold(Math.floor(item.price * 0.45))}`, "sell", `data-id="${unit.id}" ${owner ? "disabled" : ""}`, "wide")}</div></aside></div>` : empty("Un arsenal por forjar", "Compra armas, protección y pergaminos en los gremios.", "shops", "Visitar los gremios")}`;
   }
   function arenaScreen(s, ui2) {
     if (s.battle && (!s.battle.result || ui2.watchResult)) return combatScreen(s, ui2);
     const g = s.gladiators.find((g2) => g2.id === ui2.selected);
-    return `${sectionHeading("DEJA QUE SU HISTORIA COMBATA", "La arena", "Tú preparas la estrategia. Ellos toman las decisiones.", s.battle?.result ? btn("Ver último resultado", "last-result") : "")}${selectGladiator(s, ui2, "Representante de la casa")}${s.tournament ? `<div class="notice"><span>♜</span><p>Torneo en curso · ronda ${s.tournament.round + 1}. Puedes continuar desde la sección Torneos.</p>${btn("Ver torneo", "navigate", 'data-page="tournaments"')}</div>` : ""}${!g ? empty("La grada aguarda un nombre", "Compra y prepara a tu primer gladiador.") : ""}<div class="arena-intro panel"><div><p class="eyebrow">DUELOS DE EXHIBICIÓN</p><h2>El primer paso hacia la gloria.</h2><p>Sin inscripción. Victoria: al menos 85 de oro y 65 XP.<br>Una derrota otorga 18 de oro y 35 XP, pero exige descanso.</p></div><div class="arena-rules"><span>⚔ IA contra IA</span><span>◈ Recursos y distancia</span><span>⛨ Sin consecuencias permanentes</span></div></div><div class="opponents-grid">${s.rivals.filter((r) => !r.champion).map((r) => {
+    return `${sectionHeading("DEJA QUE SU HISTORIA COMBATA", "La arena", "Tú preparas la estrategia. Ellos toman las decisiones.", s.battle?.result ? btn("Ver último resultado", "last-result") : "")}${selectGladiator(s, ui2, "Representante de la casa")}${s.tournament ? `<div class="notice"><span>${glyph("tournaments", 26)}</span><p>Torneo en curso · ronda ${s.tournament.round + 1}. Puedes continuar desde la sección Torneos.</p>${btn("Ver torneo", "navigate", 'data-page="tournaments"')}</div>` : ""}${!g ? empty("La grada aguarda un nombre", "Compra y prepara a tu primer gladiador.") : ""}<div class="arena-intro panel"><div><p class="eyebrow">DUELOS DE EXHIBICIÓN</p><h2>El primer paso hacia la gloria.</h2><p>Sin inscripción. Victoria: al menos 85 de oro y 65 XP.<br>Una derrota otorga 18 de oro y 35 XP, pero exige descanso.</p></div><div class="arena-rules"><span>⚔ IA contra IA</span><span>◈ Recursos y distancia</span><span>⛨ Sin consecuencias permanentes</span></div></div><div class="opponents-grid">${s.rivals.filter((r) => !r.champion).map((r) => {
       const locked = (r.level - 1) * 12 > s.prestige;
       return `<article class="panel opponent-card">${portrait(r, "", 125, 160)}<div><p class="eyebrow">${esc(r.organization)}</p><h2>${esc(r.name)}</h2><div class="trait-row">${tag("Nivel " + r.level)}${traits(r)}</div><p class="muted">${r.record.wins} victorias · ${r.record.losses} derrotas<br>FUE ${r.stats.strength} · AGI ${r.stats.agility} · MAG ${r.stats.magic}</p>${btn(locked ? `Requiere ${(r.level - 1) * 12} prestigio` : `Inscribir · premio ${gold(85 + (r.level - 1) * 55)}`, "duel", `data-id="${r.id}" ${locked || !g ? "disabled" : ""}`, "primary")}</div></article>`;
     }).join("")}</div>`;
@@ -1670,7 +2369,7 @@
   var statusNames = { guard: "Guardia", evade: "Evasión", blind: "Confusión", boost: "Fervor", focus: "Concentración", precision: "Precisión", shield: "Escudo", burn: "Brasa", silence: "Silencio", weaken: "Debilitado", slow: "Escarcha" };
   function combatScreen(s, ui2) {
     const b = s.battle, result = b.result;
-    return `${sectionHeading(b.meta.type === "tournament" ? "RONDA DE TORNEO" : "DUELO DE EXHIBICIÓN", result ? "El veredicto de la arena" : "Dos historias. Una arena.", `Turno ${b.turn} · distancia ${Math.abs(b.fighters[0].pos - b.fighters[1].pos)} · ${result ? result.method : "combate automático"}`, tag(result ? "FINALIZADO" : "EN COMBATE", result ? "" : "gold"))}<div class="fight-hud">${b.fighters.map((f, i) => `<section class="fighter-hud ${i ? "enemy" : ""}"><div class="panel-heading"><div><small>${i ? "RIVAL" : "CASA DE CENIZA"} · NIVEL ${f.level}</small><h2>${esc(f.name)}</h2></div>${tag(i ? "II" : "I")}</div>${progressBar("Salud", f.hp, f.maxHP, "health")}${progressBar("Energía", f.energy, f.maxEnergy, "energy")}${progressBar("Maná", f.mana, f.maxMana, "mana")}<div class="buffs">${Object.entries(f.buffs).map(([id2, v]) => tag(`${statusNames[id2] || id2} · ${v.turns} t`)).join("") || "<span>Sin efectos activos</span>"}</div><details><summary>Equipo y habilidad</summary><p>${esc(f.weapon.name)} · ${f.protection} protección · ${ABILITIES[f.ability].name}</p><p>Recarga de habilidad: ${f.cooldowns.ability || 0} t · ${f.activeSpells.length} conjuros preparados</p></details></section>`).join("")}</div><div class="panel combat-stage"><canvas id="combat-canvas" width="1100" height="440" aria-label="Combate animado entre ${esc(b.fighters[0].name)} y ${esc(b.fighters[1].name)}"></canvas><div class="combat-controls">${btn(ui2.paused ? "▶ Reanudar" : "Ⅱ Pausa", "pause", result ? "disabled" : "")}<div class="speed-controls">${[1, 2, 4].map((speed) => btn(`×${speed}`, "speed", `data-speed="${speed}"`, s.options.speed === speed ? "selected" : "")).join("")}</div><label class="checkbox"><input type="checkbox" id="reasoning" ${s.options.reasoning ? "checked" : ""}> Mostrar razonamiento táctico</label></div></div>${result ? resultPanel(s) : ""}<section class="panel combat-log"><div class="panel-heading"><h2>Lo que cuenta la arena</h2><span class="muted">Decisiones reales de la IA · más recientes primero</span></div>${b.log.length ? b.log.slice(-14).reverse().map((e) => `<div class="action-entry"><span>${String(e.turn).padStart(2, "0")}</span><div><p>${esc(e.text)}</p>${s.options.reasoning ? `<small>${esc(e.reason)}</small>` : ""}</div></div>`).join("") : '<p class="muted">Los gladiadores se estudian antes de actuar…</p>'}</section>`;
+    return `<div class="battle-heading"><p class="eyebrow">${b.meta.type === "tournament" ? "COMBATE DE TORNEO" : "DUELO DE EXHIBICIÓN"}</p><h1>${result ? "El veredicto de la arena" : "Que la arena decida"}</h1>${tag(result ? "FINALIZADO" : "EN COMBATE", result ? "" : "gold")}</div><section class="panel combat-stage"><div class="fight-hud">${b.fighters.map((f, i) => `<section class="fighter-hud ${i ? "enemy" : ""}"><div class="fighter-name"><div class="fighter-seal">${glyph(i ? "arena" : "base", 23)}</div><div><small>${i ? "RIVAL" : "CASA DE CENIZA"} · NIVEL ${f.level}</small><h2>${esc(f.name)}</h2></div></div>${progressBar("Salud", f.hp, f.maxHP, "health")}<div class="secondary-resources">${progressBar("Energía", f.energy, f.maxEnergy, "energy")}${progressBar("Maná", f.mana, f.maxMana, "mana")}</div><div class="buffs">${Object.entries(f.buffs).map(([id2, v]) => tag(`${statusNames[id2] || id2} · ${v.turns} t`)).join("")}</div><details><summary>Equipo y habilidad</summary><p>${esc(f.weapon.name)} · ${f.protection} protección<br>${ABILITIES[f.ability].name} · recarga ${f.cooldowns.ability || 0} t</p></details></section>`).join('<span class="versus">VS</span>')}</div><canvas id="combat-canvas" width="1600" height="900" aria-label="Combate animado entre ${esc(b.fighters[0].name)} y ${esc(b.fighters[1].name)}"></canvas><div class="arena-readout"><b>TURNO ${String(b.turn).padStart(2, "0")}</b><span>DISTANCIA ${Math.abs(b.fighters[0].pos - b.fighters[1].pos)}</span></div>${result ? resultPanel(s) : ""}<div class="combat-controls">${btn(ui2.paused ? "▶ Reanudar" : "Ⅱ Pausa", "pause", result ? "disabled" : "")}<div class="speed-controls">${[1, 2, 4].map((speed) => btn(`×${speed}`, "speed", `data-speed="${speed}"`, s.options.speed === speed ? "selected" : "")).join("")}</div><label class="checkbox"><input type="checkbox" id="reasoning" ${s.options.reasoning ? "checked" : ""}> Mostrar razonamiento táctico</label></div></section><section class="panel combat-log"><div class="panel-heading"><h2>La voz de la arena</h2><span class="muted">Últimas decisiones</span></div>${b.log.length ? b.log.slice(-5).reverse().map((e) => `<div class="action-entry"><span>${String(e.turn).padStart(2, "0")}</span><div><p>${esc(e.text)}</p>${s.options.reasoning ? `<small>${esc(e.reason)}</small>` : ""}</div></div>`).join("") : '<p class="muted">Los gladiadores se estudian antes de actuar…</p>'}</section>`;
   }
   function resultPanel(s) {
     const b = s.battle, p = b.payout || {}, winner = b.result.winner;
@@ -1726,11 +2425,11 @@
   var previousFrame = lastTick;
   var demo = createGame();
   var menuBattle = createBattle(demo.market[0], demo.rivals[8], [], { arena: "regional" });
-  menuBattle.fighters[0].pos = 1;
-  menuBattle.fighters[1].pos = 9;
+  menuBattle.fighters[0].pos = 5.5;
+  menuBattle.fighters[1].pos = 8.7;
   function toast(text, error = false) {
     const container = document.querySelector("#toasts");
-    while (container.children.length >= 3) container.firstElementChild.remove();
+    while (container.children.length >= 2) container.firstElementChild.remove();
     const el = document.createElement("div");
     el.className = "toast" + (error ? " error" : "");
     el.setAttribute("role", error ? "alert" : "status");
@@ -1760,6 +2459,14 @@
     return ui.selected;
   }
   var actions = {
+    fullscreen: () => {
+      if (!document.fullscreenEnabled) {
+        toast("Este navegador no permite activar la pantalla completa.", true);
+        return;
+      }
+      const task = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+      Promise.resolve(task).catch(() => toast("Este navegador no permite activar la pantalla completa.", true));
+    },
     navigate: (el) => navigate(el.dataset.page),
     "menu-options": () => {
       ui.menuOptions = !ui.menuOptions;
@@ -1834,8 +2541,17 @@
       render();
       toast("Salud, estado y energía restaurados. Listo para volver a la arena.");
     },
+    "shop-select": (el) => {
+      ui.shopItem = el.dataset.id;
+      render();
+    },
+    "inventory-select": (el) => {
+      ui.inventoryUnit = el.dataset.id;
+      render();
+    },
     "shop-tab": (el) => {
       ui.shopCategory = el.dataset.category;
+      ui.shopItem = null;
       render();
     },
     "buy-item": (el) => {
@@ -2039,12 +2755,13 @@
     const t = reducedMotion ? 0 : animationTime;
     if (!ui.started) {
       const canvas = document.querySelector("#menu-canvas");
-      if (canvas) drawArena(canvas, menuBattle, t);
+      if (canvas) drawMenu(canvas, menuBattle, t);
     } else {
       const base = document.querySelector("#base-canvas");
       if (base) drawBase(base, state, t);
       const canvas = document.querySelector("#combat-canvas");
       if (canvas && state.battle) drawArena(canvas, state.battle, t, ui.paused ? Math.min(1, (lastTick - lastVisual) / (1050 / state.options.speed)) : Math.min(1, (now - lastVisual) / (1050 / state.options.speed)), previousPositions);
+      for (const canvas2 of document.querySelectorAll("[data-building]")) drawFacility(canvas2, state, canvas2.dataset.building, t);
       for (const canvas2 of document.querySelectorAll("[data-character]")) {
         const id2 = canvas2.dataset.character;
         const g = [...state.gladiators, ...state.market, ...state.rivals].find((g2) => g2.id === id2);

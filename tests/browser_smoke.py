@@ -52,12 +52,20 @@ with sync_playwright() as p:
     assert snapshot()['gladiators'][0]['stats']['strength'] > initial_strength
     page.locator('[data-action="upgrade"][data-stat="strength"]').click()
     nav('shops')
+    page.locator('[data-action="shop-select"][data-id="imperial"]').click()
+    assert page.locator('[data-action="buy-item"]').get_attribute('data-id') == 'imperial'
+    page.locator('[data-action="shop-select"][data-id="dagger"]').click()
     page.locator('[data-action="buy-item"][data-id="dagger"]').click()
     page.locator('[data-action="shop-tab"][data-category="scroll"]').click()
+    page.locator('[data-action="shop-select"][data-id="spell-shield"]').click()
+    assert page.locator('[data-action="buy-item"]').get_attribute('data-id') == 'spell-shield'
+    page.locator('[data-action="shop-select"][data-id="spell-spark"]').click()
     page.locator('[data-action="buy-item"][data-id="spell-spark"]').click()
     nav('inventory')
     page.locator('[data-action="equip"]').first.click()
     assert snapshot()['gladiators'][0]['equipment']['weapon']
+    scroll_id = next(u['id'] for u in snapshot()['inventory'] if u['itemId'] == 'spell-spark')
+    page.locator(f'[data-action="inventory-select"][data-id="{scroll_id}"]').click()
     page.locator('#gladiator-select').select_option(mage_id)
     page.locator('[data-action="learn"]').click()
     assert 'spell-spark' in snapshot()['gladiators'][1]['activeSpells']
